@@ -48,6 +48,13 @@ CREATE TABLE session (
         expire_date TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
+CREATE TABLE content_type (
+          id SERIAL PRIMARY KEY,
+          app_label VARCHAR(100) NOT NULL,
+          model VARCHAR(100) NOT NULL
+);
+
+
 CREATE TABLE admin_log (
           id SERIAL PRIMARY KEY,
           action_time TIMESTAMP WITH TIME ZONE NOT NULL,
