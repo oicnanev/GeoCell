@@ -41,3 +41,20 @@ CREATE TABLE auth_user_groups (
       group_id INT NOT NULL REFERENCES auth_group(id) ON DELETE CASCADE,
       UNIQUE (user_id, group_id)
 );
+
+CREATE TABLE session (
+        session_key VARCHAR(40) NOT NULL PRIMARY KEY,
+        session_data TEXT NOT NULL,
+        expire_date TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
+CREATE TABLE admin_log (
+          id SERIAL PRIMARY KEY,
+          action_time TIMESTAMP WITH TIME ZONE NOT NULL,
+          object_id TEXT,
+          object_repr VARCHAR(200) NOT NULL,
+          action_flag SMALLINT NOT NULL,
+          change_message TEXT NOT NULL,
+          content_type_id INT REFERENCES content_type(id),
+          user_id INT REFERENCES auth_user(id)
+);
