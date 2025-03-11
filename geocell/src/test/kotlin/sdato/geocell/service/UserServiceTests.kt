@@ -1,6 +1,7 @@
 package sdato.geocell.service
 
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -12,7 +13,6 @@ import sdato.geocell.repository.UserRepository
 
 @SpringBootTest
 class UserServiceTests {
-
     @Autowired
     private lateinit var userRepository: UserRepository
 
@@ -25,17 +25,18 @@ class UserServiceTests {
     @BeforeEach
     fun setUp() {
         // Limpa a tabela de users antes de cada teste
-        //userRepository.deleteAll()
+        // userRepository.deleteAll()
 
         // Cria o utilizador oicnanev para testes
-        val user = User(
-            username = "oicnanev2",
-            password = passwordEncoder.encode("Yd4xee35$"),
-            firstName = "First",
-            lastName = "Last",
-            email = "oicnanev@example.com",
-            isActive = true
-        )
+        val user =
+            User(
+                username = "oicnanev2",
+                password = passwordEncoder.encode("Yd4xee35$"),
+                firstName = "First",
+                lastName = "Last",
+                email = "oicnanev@example.com",
+                isActive = true,
+            )
         userRepository.save(user)
     }
 
@@ -54,14 +55,15 @@ class UserServiceTests {
     @Test
     fun `test creation and authentication of new user`() {
         // Cria um novo utilizador springTest
-        val newUser = User(
-            username = "springTest",
-            password = passwordEncoder.encode("Spring123"),
-            firstName = "Spring",
-            lastName = "Test",
-            email = "springtest@example.com",
-            isActive = true
-        )
+        val newUser =
+            User(
+                username = "springTest",
+                password = passwordEncoder.encode("Spring123"),
+                firstName = "Spring",
+                lastName = "Test",
+                email = "springtest@example.com",
+                isActive = true,
+            )
         userRepository.save(newUser)
 
         // Tenta carregar o novo utilizador

@@ -1,6 +1,7 @@
 package sdato.geocell.service
 
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -11,7 +12,6 @@ import java.time.Instant
 
 @SpringBootTest
 class SessionTests {
-
     @Autowired
     private lateinit var sessionRepository: SessionRepository
 
@@ -24,11 +24,12 @@ class SessionTests {
     @Test
     fun `test create and retrieve session`() {
         // Cria uma nova sessão
-        val session = Session(
-            sessionKey = "test_session_key",
-            sessionData = "test_session_data",
-            expireDate = Instant.now()
-        )
+        val session =
+            Session(
+                sessionKey = "test_session_key",
+                sessionData = "test_session_data",
+                expireDate = Instant.now(),
+            )
         sessionRepository.save(session)
 
         // Busca a sessão

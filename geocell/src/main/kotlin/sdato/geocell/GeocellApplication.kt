@@ -7,5 +7,5 @@ import org.springframework.boot.runApplication
 class GeocellApplication
 
 fun main(args: Array<String>) {
-	runApplication<GeocellApplication>(*args)
+    runApplication<GeocellApplication>(*args)
 }

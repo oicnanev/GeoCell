@@ -1,5 +1,6 @@
 package sdato.geocell.model
 
+import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
@@ -9,15 +10,14 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 
 @Entity
-@Table(name = "auth_user_groups")
-data class UserGroup(
+@Table(name = "geocell_enbgnb")
+data class EnbGnb(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
+    @Column(name = "enb_gnb", nullable = false)
+    val enbGnb: Int,
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    val user: User,
-    @ManyToOne
-    @JoinColumn(name = "group_id", nullable = false)
-    val group: Group,
+    @JoinColumn(name = "location_id", nullable = false)
+    val location: Location,
 )
