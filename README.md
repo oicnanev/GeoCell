@@ -139,3 +139,29 @@ BUILD SUCCESSFUL in 6s
 
 ```
 
+## PostgreSQL Server
+
+We used an [Alpine Linux](https://alpinelinux.org).
+
+After installation and configuration run:
+
+```sh
+doas apk update && doas apk upgrade
+doas apk add postgresql postgresql-contrib postgis
+```
+
+Start and enable PostgreSQL
+
+```sh
+doas rc-service postgresql start
+doas rc-update add postgresql 
+```
+
+Create the database
+
+```sh
+doas su - postgres
+createdb geocell
+psql geocell
+CREATE EXTENSION postgis;
+```
