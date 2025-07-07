@@ -10,14 +10,14 @@ import jakarta.persistence.ManyToMany
 import jakarta.persistence.Table
 
 @Entity
-@Table(name = "groups")
-data class Group(
+@Table(name = "roles")
+data class Role(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
     @Column(unique = true, nullable = false)
     val name: String,
     @Column(nullable = true)
     val description: String? = null,
-    @ManyToMany(mappedBy = "groups", fetch = FetchType.LAZY)
+    @ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)
     val users: Set<User> = emptySet(),
 )

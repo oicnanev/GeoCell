@@ -1,26 +1,18 @@
 package sdato.geocell.service
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+/*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import sdato.geocell.model.Band
-import sdato.geocell.model.Cell
-import sdato.geocell.model.EnbGnb
-import sdato.geocell.model.Location
-import sdato.geocell.model.MccMnc
-import sdato.geocell.model.User
+import org.springframework.test.context.ActiveProfiles
 import sdato.geocell.repository.BandRepository
 import sdato.geocell.repository.CellRepository
 import sdato.geocell.repository.EnbGnbRepository
 import sdato.geocell.repository.LocationRepository
 import sdato.geocell.repository.MccMncRepository
 import sdato.geocell.repository.UserRepository
-import java.time.LocalDate
 
 @SpringBootTest
+@ActiveProfiles("test")
 class CellTests {
     @Autowired
     private lateinit var cellRepository: CellRepository
@@ -40,7 +32,7 @@ class CellTests {
     @Autowired
     private lateinit var userRepository: UserRepository
 
-    @BeforeEach
+   /* @BeforeEach
     fun setUp() {
         // Limpa as tabelas antes de cada teste
         cellRepository.deleteAll()
@@ -71,11 +63,54 @@ class CellTests {
     @Test
     fun `test create and retrieve cell`() {
         // Busca os dados criados no setUp
-        val band = bandRepository.findAll().first()
-        val enbGnb = enbGnbRepository.findAll().first()
-        val location = locationRepository.findAll().first()
-        val mccMnc = mccMncRepository.findAll().first()
-        val user = userRepository.findAll().first()
+        val band = Band(
+            id = 1,
+            band = 700,
+            bandwidth = null,
+            uplinkFreq = null,
+            downlinkFreq = null,
+            earfcn = null
+        )  // bandRepository.findAll().first()
+
+        val location = Location(
+            id = 1,
+            coordinates = Point(
+                Coordinate(x = 0, y = 0, z = 0),
+                PrecisionModel(0.3),
+
+            )
+            address = "",
+            address1 = "",
+            zip4 = 1000,
+            zip3 = 0,
+            postalDesignation = "",
+            county = County(
+                id = 1,
+                idCounty = "01",
+                county = "Lisboa",
+                polygon = null,
+                district =  District(
+                    id = "01",
+                    district = "Lisboa",
+                    polygon = null,
+                    country = Country(
+                        name = "Portugal",
+                        code = "PT",
+                        polygon = null,
+                        flag = ""
+                    )
+                ),
+            ),
+        ) // locationRepository.findAll().first()
+
+        val enbGnb = EnbGnb(
+            id = 1,
+            enbGnb = 1,
+            location = location
+        ) // enbGnbRepository.findAll().first()
+
+        val mccMnc = 1 // mccMncRepository.findAll().first()
+        val user = 1 // userRepository.findAll().first()
 
         // Cria uma nova Cell
         val cell =
@@ -103,5 +138,6 @@ class CellTests {
         val retrievedCell = cellRepository.findById(cell.id).orElse(null)
         assertNotNull(retrievedCell)
         assertEquals("Cell 1", retrievedCell?.name)
-    }
+    } */
 }
+*/

@@ -27,10 +27,10 @@ dependencies {
     // Spring Boot Starter Data JPA (for BD data access)
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 
-    // Spring Boot Starter Security (for authentication and authnorization)
+    // Spring Boot Starter Security (for authentication and authorization)
     implementation("org.springframework.boot:spring-boot-starter-security")
 
-    // Spring Boot Starer validation (for data validation)
+    // Spring Boot Starter Validation (for data validation)
     implementation("org.springframework.boot:spring-boot-starter-validation")
 
     // Jackson Module Kotlin (for serialization/deserialization JSON)
@@ -39,10 +39,15 @@ dependencies {
     // Kotlin reflection API
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
-    // Spring Boot Session Management (for session managment)
+    // Spring Boot Session Management (for session management)
     implementation("org.springframework.session:spring-session-core")
 
+    // JTS (Java Topology Suite) for spatial data
     implementation("org.locationtech.jts:jts-core:1.20.0")
+
+    // Hibernate Spatial for PostGIS
+    // implementation("org.hibernate:hibernate-spatial:6.6.11.Final")
+    implementation("net.postgis:postgis-jdbc:2024.1.0")
 
     // PostgreSQL (for production)
     runtimeOnly("org.postgresql:postgresql")
@@ -55,6 +60,9 @@ dependencies {
 
     // Kotlin Test
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+
+    // In memory test database
+    // testImplementation("com.h2database:h2")
 
     // Production Test
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
