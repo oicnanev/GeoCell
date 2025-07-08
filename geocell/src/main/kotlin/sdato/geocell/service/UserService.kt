@@ -44,19 +44,7 @@ class UserService(
 
         val savedUser = userRepository.save(user)
 
-        return UserResponse(
-            id = savedUser.id,
-            username = savedUser.username,
-            email = savedUser.email,
-            firstName = savedUser.firstName,
-            lastName = savedUser.lastName,
-            isActive = savedUser.isActive,
-            groupIds = savedUser.groups.map { it.id },
-            roleIds = savedUser.roles.map { it.id },
-            createdAt = savedUser.createdAt,
-            updatedAt = savedUser.updatedAt,
-            lastLogin = savedUser.lastLogin,
-        )
+        return userResponse(savedUser)
     }
 
     @Transactional(readOnly = true)
@@ -65,19 +53,7 @@ class UserService(
             userRepository.findById(id)
                 .orElseThrow { NoSuchElementException("User not found with id: $id") }
 
-        return UserResponse(
-            id = user.id,
-            username = user.username,
-            email = user.email,
-            firstName = user.firstName,
-            lastName = user.lastName,
-            createdAt = user.createdAt,
-            updatedAt = user.updatedAt,
-            lastLogin = user.lastLogin,
-            isActive = user.isActive,
-            groupIds = user.groups.map { it.id },
-            roleIds = user.roles.map { it.id },
-        )
+        return userResponse(user)
     }
 
     @Transactional
@@ -104,21 +80,24 @@ class UserService(
             )
 
         return users.map { user ->
-            UserResponse(
-                id = user.id,
-                username = user.username,
-                email = user.email,
-                firstName = user.firstName,
-                lastName = user.lastName,
-                isActive = user.isActive,
-                groupIds = user.groups?.map { it.id } ?: emptyList(),
-                roleIds = user.roles?.map { it.id } ?: emptyList(),
-                createdAt = user.createdAt,
-                updatedAt = user.updatedAt,
-                lastLogin = user.lastLogin,
-            )
+            userResponse(user = user)
         }
     }
+
+    private fun userResponse(user: User) =
+        UserResponse(
+            id = user.id,
+            username = user.username,
+            email = user.email,
+            firstName = user.firstName,
+            lastName = user.lastName,
+            isActive = user.isActive,
+            groupIds = user.groups.map { it.id },
+            roleIds = user.roles.map { it.id },
+            createdAt = user.createdAt,
+            updatedAt = user.updatedAt,
+            lastLogin = user.lastLogin,
+        )
 
     data class UserSearchFilter(
         val username: String?,

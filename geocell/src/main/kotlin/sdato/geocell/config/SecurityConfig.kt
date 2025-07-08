@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
+import sdato.geocell.http.Uris
 import sdato.geocell.repository.UserSessionRepository
 import sdato.geocell.service.CustomLogoutHandler
 
@@ -21,14 +22,22 @@ class SecurityConfig(
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
-            .csrf().disable()
+            // .csrf().disable()
             .authorizeHttpRequests { requests ->
                 requests
-                    .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+                    .requestMatchers(
+                        Uris.Users.TOKEN,
+                        Uris.Users.CREATE,
+                        Uris.HOME,
+                        Uris.About.ABOUT,
+                        Uris.SystemInfo.INFO
+                    ).permitAll()
+                    //.requestMatchers(ApiRoutes.LOGIN, ApiRoutes.REGISTER).permitAll()
                     .anyRequest().authenticated()
             }
             .logout { logout ->
-                logout.logoutUrl("/api/auth/logout")
+                //logout.logoutUrl(ApiRoutes.LOGOUT)
+                logout.logoutUrl(Uris.Users.LOGOUT)
                 logout.deleteCookies("SESSION_TOKEN")
                 logout.invalidateHttpSession(true)
                 logout.addLogoutHandler(CustomLogoutHandler(userSessionRepository))

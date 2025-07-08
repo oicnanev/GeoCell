@@ -1,4 +1,4 @@
-package sdato.geocell.controller
+package sdato.geocell.http
 
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.ResponseEntity
@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import sdato.geocell.config.ApiRoutes
 import sdato.geocell.dto.request.LoginRequest
 import sdato.geocell.model.UserSession
 import sdato.geocell.repository.UserRepository
@@ -19,7 +20,8 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 @RestController
-@RequestMapping("/api/auth")
+//@RequestMapping(ApiRoutes.AUTH_BASE)
+@RequestMapping(Uris.Users.CREATE)
 class AuthController(
     private val authenticationManager: AuthenticationManager,
     private val userRepository: UserRepository,
@@ -29,7 +31,7 @@ class AuthController(
     fun login(
         @RequestBody loginRequest: LoginRequest,
         request: HttpServletRequest,
-    ): ResponseEntity<sdato.geocell.controller.LoginResponse?> {
+    ): ResponseEntity<sdato.geocell.http.LoginResponse?> {
         val authentication: Authentication =
             authenticationManager.authenticate(
                 UsernamePasswordAuthenticationToken(
@@ -44,12 +46,12 @@ class AuthController(
             userRepository.findByUsernameWithRolesAndGroups(loginRequest.username)
                 ?: throw IllegalArgumentException("User not found")
 
-        // Invalidar todas as sessões existentes para este usuário
+        // Invalidate all sessions for this user
         userSessionRepository.invalidateAllSessionsForUser(user.id)
 
-        // Criar nova sessão
+        // Create new session
         val sessionToken = UUID.randomUUID().toString()
-        val expiresAt = Instant.now().plusSeconds(TimeUnit.DAYS.toSeconds(7)) // 7 dias de expiração
+        val expiresAt = Instant.now().plusSeconds(TimeUnit.DAYS.toSeconds(7)) // 7 days expiration
 
         val userSession =
             UserSession(

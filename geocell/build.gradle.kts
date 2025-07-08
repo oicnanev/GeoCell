@@ -62,7 +62,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 
     // In memory test database
-    // testImplementation("com.h2database:h2")
+    testImplementation("com.h2database:h2")
 
     // Production Test
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -76,4 +76,7 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    jvmArgs = listOf(
+        "-javaagent:${classpath.find { it.name.contains("byte-buddy-agent") }?.absolutePath}" // Explicitly load ByteBuddy agent
+    )
 }
