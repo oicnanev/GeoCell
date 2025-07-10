@@ -7,6 +7,5 @@ import sdato.geocell.http.model.OutputHomeModel
 @RestController
 class HomeController {
     @GetMapping(Uris.HOME)
-
     fun getHome() = OutputHomeModel()
 }

@@ -76,7 +76,9 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
-    jvmArgs = listOf(
-        "-javaagent:${classpath.find { it.name.contains("byte-buddy-agent") }?.absolutePath}" // Explicitly load ByteBuddy agent
-    )
+    jvmArgs =
+        listOf(
+            // Explicitly load ByteBuddy agent
+            "-javaagent:${classpath.find { it.name.contains("byte-buddy-agent") }?.absolutePath}",
+        )
 }

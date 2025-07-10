@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import sdato.geocell.config.ApiRoutes
 import sdato.geocell.dto.request.LoginRequest
 import sdato.geocell.model.UserSession
 import sdato.geocell.repository.UserRepository
@@ -20,7 +19,7 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 @RestController
-//@RequestMapping(ApiRoutes.AUTH_BASE)
+// @RequestMapping(ApiRoutes.AUTH_BASE)
 @RequestMapping(Uris.Users.CREATE)
 class AuthController(
     private val authenticationManager: AuthenticationManager,

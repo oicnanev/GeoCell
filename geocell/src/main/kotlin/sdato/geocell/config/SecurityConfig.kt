@@ -30,13 +30,13 @@ class SecurityConfig(
                         Uris.Users.CREATE,
                         Uris.HOME,
                         Uris.About.ABOUT,
-                        Uris.SystemInfo.INFO
+                        Uris.SystemInfo.INFO,
                     ).permitAll()
-                    //.requestMatchers(ApiRoutes.LOGIN, ApiRoutes.REGISTER).permitAll()
+                    // .requestMatchers(ApiRoutes.LOGIN, ApiRoutes.REGISTER).permitAll()
                     .anyRequest().authenticated()
             }
             .logout { logout ->
-                //logout.logoutUrl(ApiRoutes.LOGOUT)
+                // logout.logoutUrl(ApiRoutes.LOGOUT)
                 logout.logoutUrl(Uris.Users.LOGOUT)
                 logout.deleteCookies("SESSION_TOKEN")
                 logout.invalidateHttpSession(true)

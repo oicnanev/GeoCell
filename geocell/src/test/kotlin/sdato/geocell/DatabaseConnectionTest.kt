@@ -9,7 +9,7 @@ import javax.sql.DataSource
 
 @SpringBootTest
 class DatabaseConnectionTest(
-    @Autowired private val dataSource: DataSource
+    @Autowired private val dataSource: DataSource,
 ) {
     @Test
     fun testConnection() {
