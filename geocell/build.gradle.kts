@@ -52,6 +52,15 @@ dependencies {
     // PostgreSQL (for production)
     runtimeOnly("org.postgresql:postgresql")
 
+    // To use Kotlin specific date and time functions
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
+
+    // for JDBI
+    implementation("org.jdbi:jdbi3-core:3.37.1")
+    implementation("org.jdbi:jdbi3-kotlin:3.37.1")
+    implementation("org.jdbi:jdbi3-postgres:3.37.1")
+    implementation("org.postgresql:postgresql:42.5.4")
+
     // Spring Boot Starter Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 

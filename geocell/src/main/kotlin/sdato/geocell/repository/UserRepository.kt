@@ -1,60 +1,33 @@
 package sdato.geocell.repository
 
-import org.springframework.data.jpa.repository.JpaRepository
-import org.springframework.data.jpa.repository.Modifying
-import org.springframework.data.jpa.repository.Query
-import org.springframework.data.repository.query.Param
-import org.springframework.stereotype.Repository
-import org.springframework.transaction.annotation.Transactional
-import sdato.geocell.model.User
+import kotlinx.datetime.Instant
+import sdato.geocell.domain.entities.PasswordValidationInfo
+import sdato.geocell.domain.entities.Token
+import sdato.geocell.domain.entities.TokenValidationInfo
+import sdato.geocell.domain.entities.User
 
-@Repository
-interface UserRepository : JpaRepository<User, Long>, UserRepositoryCustom {
-    // Basic queries
-    fun findByUsername(username: String): User?
+interface UserRepository {
+    fun storeUser(
+        username: String,
+        passwordValidation: PasswordValidationInfo,
+        // TODO: Add more fields as needed
+    ): Int
 
-    fun findByEmail(email: String): User?
+    fun getUserById(id: Int): User?
 
-    // Queries to check existence
-    fun existsByUsername(username: String): Boolean
+    fun getUserUsernameById(id: Int): String?
 
-    fun existsByEmail(email: String): Boolean
+    fun getUserByUsername(username: String): User?
 
-    // Querie with JOIN FETCH to load roles and groups
-    @Query(
-        "SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles LEFT JOIN FETCH u.groups " +
-            "WHERE u.username = :username",
-    )
-    fun findByUsernameWithRolesAndGroups(
-        @Param("username") username: String,
-    ): User?
+    fun getTokenByTokenValidationInfo(tokenValidationInfo: TokenValidationInfo): Pair<User, Token>?
 
-    // Update last login date
-    @Transactional
-    @Modifying
-    @Query("UPDATE User u SET u.lastLogin = CURRENT_TIMESTAMP WHERE u.id = :userId")
-    fun updateLastLogin(
-        @Param("userId") userId: Long,
-    )
+    fun isUserStoredByUsername(username: String): Boolean
 
-    // Update password
-    @Transactional
-    @Modifying
-    @Query("UPDATE User u SET u.password = :newPassword, u.updatedAt = CURRENT_TIMESTAMP WHERE u.id = :userId")
-    fun updatePassword(
-        @Param("userId") userId: Long,
-        @Param("newPassword") newPassword: String,
-    )
+    fun createToken(token: Token, maxTokens: Int)
 
-    // Querie active users
-    fun findByIsActive(isActive: Boolean): List<User>
+    fun updateTokenLastUsed(token: Token, now: Instant)
 
-    // Querie by name (case-insensitive)
-    @Query(
-        "SELECT u FROM User u WHERE LOWER(u.firstName) LIKE LOWER(CONCAT('%', :name, '%')) OR " +
-            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :name, '%'))",
-    )
-    fun searchByName(
-        @Param("name") name: String,
-    ): List<User>
+    fun removeTokenByValidationInfo(tokenValidationInfo: TokenValidationInfo): Int
+
+    fun getUserIDByUsername(username1: String): Int
 }
