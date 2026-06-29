@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourcePerFileMappings">
-    <file url="file://$PROJECT_DIR$/geocell/jvm/src/sql/create_schema.sql" value="b34b2523-8c56-4edc-8f55-548f10a7e601" />
+    <file url="file://$PROJECT_DIR$/geocell/src/sql/create_schema.sql" value="b34b2523-8c56-4edc-8f55-548f10a7e601" />
   </component>
 </project>
