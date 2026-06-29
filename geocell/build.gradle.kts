@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.kotlin
+
 plugins {
 	kotlin("jvm") version "2.3.21"
 	kotlin("plugin.spring") version "2.3.21"
