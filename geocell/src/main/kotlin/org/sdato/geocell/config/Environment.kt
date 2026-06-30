@@ -1,4 +1,4 @@
-package org.sdato.geocell
+package org.sdato.geocell.config
 
 object Environment {
     private const val KEY_DB_URL = "DB_URL"

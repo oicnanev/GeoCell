@@ -1,4 +1,4 @@
-package org.sdato.geocell.security
+package org.sdato.geocell.domain.auth
 
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority

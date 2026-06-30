@@ -1,10 +1,13 @@
-package org.sdato.geocell.security
+package org.sdato.geocell.service.auth
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.beans.factory.annotation.Value
+import org.sdato.geocell.domain.auth.AuthUserPrincipal
+import org.sdato.geocell.domain.auth.LoginResult
+import org.sdato.geocell.repository.auth.AuthSessionRepository
 import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseCookie
+import org.springframework.security.core.Authentication
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import java.nio.charset.StandardCharsets
@@ -13,7 +16,6 @@ import java.time.Duration
 import java.time.OffsetDateTime
 
 @Service
-@ConditionalOnBean(AuthSessionRepository::class)
 @Profile("!test")
 class AuthSessionService(
 	private val authSessionRepository: AuthSessionRepository,
@@ -66,6 +68,9 @@ class AuthSessionService(
 	fun createSessionCookieHeader(sessionKey: String): String =
 		createSessionCookie(sessionKey, Duration.ofHours(sessionTtlHours)).toString()
 
+	fun extractPrincipal(authentication: Authentication): AuthUserPrincipal? =
+		authentication.principal as? AuthUserPrincipal
+
 	private fun createSessionCookie(sessionKey: String, maxAge: Duration): ResponseCookie =
 		ResponseCookie.from(SESSION_COOKIE_NAME, sessionKey)
 			.httpOnly(true)
@@ -95,8 +100,3 @@ class AuthSessionService(
 		const val SET_COOKIE_HEADER = HttpHeaders.SET_COOKIE
 	}
 }
-
-data class LoginResult(
-	val cookieHeader: String,
-	val principal: AuthUserPrincipal
-)

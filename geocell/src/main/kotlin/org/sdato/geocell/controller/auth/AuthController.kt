@@ -1,10 +1,16 @@
-package org.sdato.geocell.security
+package org.sdato.geocell.controller.auth
 
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import org.sdato.geocell.dto.request.LoginRequest
+import org.sdato.geocell.dto.response.AuthUserResponse
+import org.sdato.geocell.exception.InvalidCredentialsException
+import org.sdato.geocell.service.auth.AuthSessionService
+import org.sdato.geocell.util.toResponse
+import org.sdato.geocell.validator.LoginRequestValidator
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import org.springframework.http.HttpStatus
 import org.springframework.context.annotation.Profile
+import org.springframework.http.HttpStatus
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -18,7 +24,8 @@ import org.springframework.web.bind.annotation.RestController
 @ConditionalOnBean(AuthSessionService::class)
 @Profile("!test")
 class AuthController(
-	private val authSessionService: AuthSessionService
+	private val authSessionService: AuthSessionService,
+	private val loginRequestValidator: LoginRequestValidator
 ) {
 
 	@PostMapping("/login")
@@ -27,6 +34,7 @@ class AuthController(
 		servletRequest: HttpServletRequest,
 		response: HttpServletResponse
 	): AuthUserResponse {
+		loginRequestValidator.validate(request)
 		val loginResult = authSessionService.login(
 			username = request.username,
 			rawPassword = request.password,
@@ -52,31 +60,7 @@ class AuthController(
 
 	@GetMapping("/me")
 	fun me(authentication: Authentication): AuthUserResponse {
-		val principal = authentication.principal as? AuthUserPrincipal ?: throw InvalidCredentialsException()
+		val principal = authSessionService.extractPrincipal(authentication) ?: throw InvalidCredentialsException()
 		return principal.toResponse()
 	}
 }
-
-data class LoginRequest(
-	val username: String,
-	val password: String
-)
-
-data class AuthUserResponse(
-	val id: Long,
-	val username: String,
-	val name: String,
-	val email: String,
-	val roles: Set<String>
-)
-
-@ResponseStatus(HttpStatus.UNAUTHORIZED)
-class InvalidCredentialsException : RuntimeException("Invalid credentials")
-
-private fun AuthUserPrincipal.toResponse() = AuthUserResponse(
-	id = userId,
-	username = username,
-	name = fullName,
-	email = email,
-	roles = authorities.mapNotNull { it.authority }.toSet()
-)

@@ -1,5 +1,6 @@
-package org.sdato.geocell.security
+package org.sdato.geocell.repository.auth
 
+import org.sdato.geocell.domain.auth.AuthUserPrincipalRecord
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.context.annotation.Profile
@@ -8,7 +9,7 @@ import java.sql.Timestamp
 import java.time.OffsetDateTime
 
 @Repository
-@ConditionalOnBean(JdbcTemplate::class)
+//@ConditionalOnBean(JdbcTemplate::class)
 @Profile("!test")
 class AuthSessionRepository(
 	private val jdbcTemplate: JdbcTemplate
@@ -146,27 +147,4 @@ class AuthSessionRepository(
 			sessionKey
 		)
 	}
-}
-
-data class AuthUserPrincipalRecord(
-	val userId: Long,
-	val username: String,
-	val passwordHash: String,
-	val fullName: String,
-	val email: String,
-	val active: Boolean,
-	val superuser: Boolean,
-	val analyst: Boolean,
-	val operationAdmin: Boolean
-) {
-	fun toPrincipal() = AuthUserPrincipal(
-		userId = userId,
-		usernameValue = username,
-		fullName = fullName,
-		email = email,
-		isSuperuser = superuser,
-		isAnalyst = analyst,
-		isOperationAdmin = operationAdmin,
-		active = active
-	)
 }

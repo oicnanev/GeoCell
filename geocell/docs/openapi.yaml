@@ -1,0 +1,171 @@
+openapi: 3.0.2
+info:
+  title: GeoCell
+  version: 1.0.0
+  description: GeoCell API
+
+servers:
+  - url: http://localhost:8080/api/v1
+
+paths:
+  /:
+    get:
+      summary: Home
+      description: Home page
+      responses:
+        '200':
+          description: OK
+
+  /users:
+    get:
+      summary: Retrieve all users
+      responses:
+        '200':
+          $ref: '#/components/responses/UserListResponse'
+    post:
+      summary: Create a new user
+      requestBody:
+        $ref: '#/components/requestBodies/UserRequest'
+      responses:
+        '201':
+          description: User created
+
+  /users/{id}:
+    get:
+      summary: Retrieve a user by ID
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          $ref: '#/components/responses/UserResponse'
+        '404':
+          $ref: '#/components/responses/UserNotFoundResponse'
+    put:
+      summary: Update a user by ID
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        $ref: '#/components/requestBodies/UserRequest'
+      responses:
+        '200':
+          description: User updated
+    delete:
+      summary: Delete a user by ID
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '204':
+          description: User deleted
+        '404':
+          $ref: '#/components/responses/UserNotFoundResponse'
+
+  /departments:
+    post:
+      summary: Create a new department
+      requestBody:
+        $ref: '#/components/requestBodies/DepartmentRequest'
+      responses:
+        '201':
+          description: Department created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Department'
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+
+components:
+  parameters:
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+  requestBodies:
+    UserRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/User'
+
+    DepartmentRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateDepartmentRequest'
+
+  responses:
+    UserListResponse:
+      description: A list of users
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/User'
+
+    UserResponse:
+      description: User found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/User'
+
+    UserNotFoundResponse:
+      description: User not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ValidationErrorResponse:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        email:
+          type: string
+
+    CreateDepartmentRequest:
+      type: object
+      required:
+        - name
+        - haveOperations
+      properties:
+        name:
+          type: string
+        haveOperations:
+          type: boolean
+
+    Department:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        haveOperations:
+          type: boolean
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string

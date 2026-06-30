@@ -1,4 +1,4 @@
-package org.sdato.geocell.security
+package org.sdato.geocell.config
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
