@@ -1,146 +1,278 @@
-openapi: 3.0.2
+openapi: 3.0.3
 info:
-  title: GeoCell
+  title: GeoCell API
   version: 1.0.0
-  description: GeoCell API
+  description: Endpoints de autenticação e administração de utilizadores/departamentos com base no create_schema.sql.
 
 servers:
-  - url: http://localhost:8080/api/v1
+  - url: http://localhost:8080
+
+tags:
+  - name: Auth
+  - name: Departments
+  - name: Users
 
 paths:
-  /:
-    get:
-      summary: Home
-      description: Home page
-      responses:
-        '200':
-          description: OK
-
-  /users:
-    get:
-      summary: Retrieve all users
-      responses:
-        '200':
-          $ref: '#/components/responses/UserListResponse'
+  /api/auth/login:
     post:
-      summary: Create a new user
+      tags: [Auth]
+      summary: Efetuar login
       requestBody:
-        $ref: '#/components/requestBodies/UserRequest'
-      responses:
-        '201':
-          description: User created
-
-  /users/{id}:
-    get:
-      summary: Retrieve a user by ID
-      parameters:
-        - $ref: '#/components/parameters/UserId'
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          $ref: '#/components/responses/UserResponse'
-        '404':
-          $ref: '#/components/responses/UserNotFoundResponse'
-    put:
-      summary: Update a user by ID
-      parameters:
-        - $ref: '#/components/parameters/UserId'
-      requestBody:
-        $ref: '#/components/requestBodies/UserRequest'
-      responses:
-        '200':
-          description: User updated
-    delete:
-      summary: Delete a user by ID
-      parameters:
-        - $ref: '#/components/parameters/UserId'
-      responses:
-        '204':
-          description: User deleted
-        '404':
-          $ref: '#/components/responses/UserNotFoundResponse'
-
-  /departments:
-    post:
-      summary: Create a new department
-      requestBody:
-        $ref: '#/components/requestBodies/DepartmentRequest'
-      responses:
-        '201':
-          description: Department created
+          description: Login com sucesso
+          headers:
+            Set-Cookie:
+              description: Cookie de sessão
+              schema:
+                type: string
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Department'
+                $ref: '#/components/schemas/AuthUserResponse'
         '400':
-          $ref: '#/components/responses/ValidationErrorResponse'
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Efetuar logout
+      security:
+        - SessionCookieAuth: []
+      responses:
+        '204':
+          description: Logout com sucesso
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Obter utilizador autenticado
+      security:
+        - SessionCookieAuth: []
+      responses:
+        '200':
+          description: Utilizador autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/departments:
+    get:
+      tags: [Departments]
+      summary: Listar departamentos
+      description: Requer utilizador autenticado com perfil superuser.
+      security:
+        - SessionCookieAuth: []
+      responses:
+        '200':
+          description: Lista de departamentos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DepartmentResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+    post:
+      tags: [Departments]
+      summary: Criar departamento
+      description: Requer utilizador autenticado com perfil superuser.
+      security:
+        - SessionCookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDepartmentRequest'
+      responses:
+        '201':
+          description: Departamento criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /api/users:
+    get:
+      tags: [Users]
+      summary: Listar utilizadores
+      description: Requer utilizador autenticado com perfil superuser.
+      security:
+        - SessionCookieAuth: []
+      responses:
+        '200':
+          description: Lista de utilizadores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+    post:
+      tags: [Users]
+      summary: Criar utilizador
+      description: Requer utilizador autenticado com perfil superuser.
+      security:
+        - SessionCookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Utilizador criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /api/users/{id}:
+    get:
+      tags: [Users]
+      summary: Obter utilizador por ID
+      description: Requer utilizador autenticado com perfil superuser.
+      security:
+        - SessionCookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Utilizador encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
 components:
-  parameters:
-    UserId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: integer
-        format: int64
-
-  requestBodies:
-    UserRequest:
-      required: true
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/User'
-
-    DepartmentRequest:
-      required: true
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/CreateDepartmentRequest'
+  securitySchemes:
+    SessionCookieAuth:
+      type: apiKey
+      in: cookie
+      name: session_key
 
   responses:
-    UserListResponse:
-      description: A list of users
+    ValidationError:
+      description: Pedido inválido
       content:
         application/json:
           schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/User'
-
-    UserResponse:
-      description: User found
+            $ref: '#/components/schemas/ErrorResponse'
+    UnauthorizedError:
+      description: Não autenticado
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/User'
-
-    UserNotFoundResponse:
-      description: User not found
+            $ref: '#/components/schemas/ErrorResponse'
+    ForbiddenError:
+      description: Sem permissões para a operação
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
-
-    ValidationErrorResponse:
-      description: Validation error
+            $ref: '#/components/schemas/ErrorResponse'
+    ConflictError:
+      description: Conflito de dados
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFoundError:
+      description: Recurso não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
 
   schemas:
-    User:
+    LoginRequest:
       type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          maxLength: 150
+        password:
+          type: string
+          maxLength: 128
+
+    AuthUserResponse:
+      type: object
+      required:
+        - id
+        - username
+        - name
+        - email
+        - roles
       properties:
         id:
           type: integer
           format: int64
+        username:
+          type: string
         name:
           type: string
         email:
           type: string
+          format: email
+        roles:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
 
     CreateDepartmentRequest:
       type: object
@@ -150,11 +282,16 @@ components:
       properties:
         name:
           type: string
+          maxLength: 150
         haveOperations:
           type: boolean
 
-    Department:
+    DepartmentResponse:
       type: object
+      required:
+        - id
+        - name
+        - haveOperations
       properties:
         id:
           type: integer
@@ -164,8 +301,104 @@ components:
         haveOperations:
           type: boolean
 
-    Error:
+    CreateUserRequest:
+      type: object
+      required:
+        - username
+        - password
+        - name
+        - email
+        - departmentId
+      properties:
+        username:
+          type: string
+          maxLength: 150
+        password:
+          type: string
+          maxLength: 128
+        name:
+          type: string
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        departmentId:
+          type: integer
+          format: int64
+        isSuperuser:
+          type: boolean
+          default: false
+        isAnalyst:
+          type: boolean
+          default: false
+        isOperationAdmin:
+          type: boolean
+          default: false
+        mapType:
+          type: string
+          enum: [standard, satellite, hybrid, terrain]
+          default: standard
+        showGrid:
+          type: boolean
+          default: false
+        showCounties:
+          type: boolean
+          default: false
+
+    UserResponse:
+      type: object
+      required:
+        - id
+        - username
+        - name
+        - email
+        - isSuperuser
+        - isAnalyst
+        - isOperationAdmin
+        - mapType
+        - showGrid
+        - showCounties
+      properties:
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        departmentId:
+          type: integer
+          format: int64
+          nullable: true
+        isSuperuser:
+          type: boolean
+        isAnalyst:
+          type: boolean
+        isOperationAdmin:
+          type: boolean
+        mapType:
+          type: string
+          enum: [standard, satellite, hybrid, terrain]
+        showGrid:
+          type: boolean
+        showCounties:
+          type: boolean
+
+    ErrorResponse:
       type: object
       properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
         message:
+          type: string
+        path:
           type: string

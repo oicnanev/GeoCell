@@ -230,6 +230,50 @@ CREATE DATABASE geocell OWNER geocell_user;
 \c geocell
 CREATE EXTENSION postgis;
 GRANT ALL PRIVILEGES ON DATABASE geocell TO geocell_user;
+GRANT USAGE ON SCHEMA public TO geocell_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO geocell_user;
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO geocell_user;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO geocell_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA PUBLIC GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO geocell_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA PUBLIC GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO geocell_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA PUBLIC GRANT EXECUTE ON FUNCTIONS TO geocell_user;
 \q
 exit
 ```
+
+### First user and department
+
+1. Generate a BCrypt password (Spring Security format):
+```sh
+python3 -c 'import bcrypt; print(bcrypt.hashpw(b"5up3r_5tr0ng_p455w0rd!", bcrypt.gensalt()).decode())'
+```
+
+2. Insert the first department:
+```sql
+INSERT INTO department (name, have_operations)
+VALUES ('Dev', true)
+RETURNING id;
+```
+
+3. Insert the first user:
+```sql
+INSERT INTO auth_user (
+  username, password, name, email,
+  is_active, is_superuser, is_analyst, is_operation_admin,
+  map_type, show_grid, show_counties
+) VALUES (
+  'admin',
+  '<GENERTATED_PASSWORD>',
+  'Admin',
+  'admin@geocell.local',
+  true, true, true, true,
+  'hybrid', false, false
+) RETURNING id;
+```
+
+4. Connect the user to the department:
+```sql
+INSERT INTO user_department (user_id, department_id)
+VALUES (<USER_ID>, <DEPARTMET_ID>);
+```
+

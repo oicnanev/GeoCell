@@ -1,12 +1,11 @@
 package org.sdato.geocell.repository.department
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
+import org.sdato.geocell.domain.department.DepartmentRecord
 import org.springframework.context.annotation.Profile
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 
 @Repository
-//@ConditionalOnBean(JdbcTemplate::class)
 @Profile("!test")
 class JdbcDepartmentRepository(
 	private val jdbcTemplate: JdbcTemplate
@@ -33,4 +32,19 @@ class JdbcDepartmentRepository(
 			name,
 			haveOperations
 		) ?: throw IllegalStateException("Failed to create department")
+
+	override fun findAll(): List<DepartmentRecord> =
+		jdbcTemplate.query(
+			"""
+			SELECT id, name, have_operations
+			FROM department
+			ORDER BY name ASC
+			""".trimIndent()
+		) { rs, _ ->
+			DepartmentRecord(
+				id = rs.getLong("id"),
+				name = rs.getString("name"),
+				haveOperations = rs.getBoolean("have_operations")
+			)
+		}
 }

@@ -1,11 +1,12 @@
-package org.sdato.geocell.dto.response
+package org.sdato.geocell.domain.user
 
-data class CreateUserResponse(
+data class UserRecord(
 	val id: Long,
 	val username: String,
 	val name: String,
 	val email: String,
 	val departmentId: Long?,
+	val isActive: Boolean,
 	val isSuperuser: Boolean,
 	val isAnalyst: Boolean,
 	val isOperationAdmin: Boolean,
