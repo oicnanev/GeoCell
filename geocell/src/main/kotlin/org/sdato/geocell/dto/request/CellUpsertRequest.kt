@@ -1,7 +1,7 @@
 package org.sdato.geocell.dto.request
 
 data class CellUpsertRequest(
-	val lacTac: String,
+	val lacTac: String? = null,
 	val ci: String? = null,
 	val eciNci: String? = null,
 	val cgi: String? = null,

@@ -4,7 +4,7 @@ import java.time.OffsetDateTime
 
 data class CellDetailsRecord(
 	val id: Long,
-	val lacTac: String,
+	val lacTac: String?,
 	val ci: String?,
 	val eciNci: String?,
 	val cgi: String?,
@@ -93,7 +93,7 @@ data class CellMccMncWriteRecord(
 )
 
 data class CellWriteRecord(
-	val lacTac: String,
+	val lacTac: String?,
 	val ci: String?,
 	val eciNci: String?,
 	val cgi: String?,
@@ -106,5 +106,7 @@ data class CellWriteRecord(
 	val locationId: Long?,
 	val mccMncId: Long?,
 	val updatedBy: Long,
-	val createdBy: Long? = null
+	val createdBy: Long? = null,
+	val createdAt: OffsetDateTime? = null,
+	val updatedAt: OffsetDateTime? = null
 )

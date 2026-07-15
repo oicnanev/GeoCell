@@ -4,7 +4,7 @@ import java.time.OffsetDateTime
 
 data class CellResponse(
 	val id: Long,
-	val lacTac: String,
+	val lacTac: String?,
 	val ci: String?,
 	val eciNci: String?,
 	val cgi: String?,

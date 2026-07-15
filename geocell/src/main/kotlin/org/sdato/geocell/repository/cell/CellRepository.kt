@@ -8,7 +8,20 @@ import org.sdato.geocell.domain.cell.CellWriteRecord
 
 interface CellRepository {
 	fun findByCgi(cgi: String): List<CellDetailsRecord>
+	fun findByIdentifiers(cgi: String?, paragonCgi: String?): CellDetailsRecord?
+	fun findNearbyCells(
+		latitude: Double,
+		longitude: Double,
+		radiusMeters: Double,
+		mnc: Int?,
+		technologies: Set<Int>?
+	): List<CellDetailsRecord>
 	fun findById(id: Long): CellDetailsRecord?
+	fun findCountyId(districtId: String, countyId: String): Long?
+	fun findMccMncId(mcc: Int, mnc: Int): Long?
+	fun findLocationId(record: CellLocationWriteRecord): Long?
+	fun findBandId(record: CellBandWriteRecord): Long?
+	fun findEnbGnbId(enbGnb: Int, locationId: Long): Long?
 	fun insertLocation(record: CellLocationWriteRecord): Long
 	fun updateLocation(id: Long, record: CellLocationWriteRecord)
 	fun insertBand(record: CellBandWriteRecord): Long

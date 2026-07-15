@@ -29,11 +29,171 @@ class JdbcCellRepository(
 			cgi
 		)
 
+	override fun findByIdentifiers(cgi: String?, paragonCgi: String?): CellDetailsRecord? {
+		if (cgi == null && paragonCgi == null) {
+			return null
+		}
+
+		val conditions = buildList {
+			if (cgi != null) add("c.cgi = ?")
+			if (paragonCgi != null) add("c.paragon_cgi = ?")
+		}
+		val params = buildList<Any> {
+			if (cgi != null) add(cgi)
+			if (paragonCgi != null) add(paragonCgi)
+		}
+
+		return jdbcTemplate.query(
+			"""
+			$baseSelect
+			WHERE ${conditions.joinToString(" OR ")}
+			ORDER BY c.id DESC
+			""".trimIndent(),
+			{ rs, _ -> rs.toCellDetailsRecord() },
+			*params.toTypedArray()
+		).firstOrNull()
+	}
+
+	override fun findNearbyCells(
+		latitude: Double,
+		longitude: Double,
+		radiusMeters: Double,
+		mnc: Int?,
+		technologies: Set<Int>?
+	): List<CellDetailsRecord> {
+		val sql = StringBuilder(
+			"""
+			$baseSelect
+			WHERE l.coordinates IS NOT NULL
+			  AND ST_DWithin(
+			    l.coordinates::geography,
+			    ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography,
+			    ?
+			  )
+			""".trimIndent()
+		)
+		val params = mutableListOf<Any>(longitude, latitude, radiusMeters)
+
+		if (mnc != null) {
+			sql.append("\n  AND m.mnc = ?")
+			params.add(mnc)
+		}
+		if (!technologies.isNullOrEmpty()) {
+			sql.append("\n  AND c.technology IN (${technologies.joinToString(",") { "?" }})")
+			params.addAll(technologies)
+		}
+
+		sql.append(
+			"""
+			
+			ORDER BY ST_Distance(
+			  l.coordinates::geography,
+			  ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography
+			), c.id DESC
+			""".trimIndent()
+		)
+		params.add(longitude)
+		params.add(latitude)
+
+		return jdbcTemplate.query(
+			sql.toString(),
+			{ rs, _ -> rs.toCellDetailsRecord() },
+			*params.toTypedArray()
+		)
+	}
+
 	override fun findById(id: Long): CellDetailsRecord? =
 		jdbcTemplate.query(
 			"$baseSelect WHERE c.id = ?",
 			{ rs, _ -> rs.toCellDetailsRecord() },
 			id
+		).firstOrNull()
+
+	override fun findCountyId(districtId: String, countyId: String): Long? =
+		jdbcTemplate.query(
+			"""
+			SELECT id
+			FROM county
+			WHERE district_id = ? AND id_county = ?
+			LIMIT 1
+			""".trimIndent(),
+			{ rs, _ -> rs.getLong("id") },
+			districtId,
+			countyId
+		).firstOrNull()
+
+	override fun findMccMncId(mcc: Int, mnc: Int): Long? =
+		jdbcTemplate.query(
+			"""
+			SELECT id
+			FROM mccmnc
+			WHERE mcc = ? AND mnc = ?
+			LIMIT 1
+			""".trimIndent(),
+			{ rs, _ -> rs.getLong("id") },
+			mcc,
+			mnc
+		).firstOrNull()
+
+	override fun findLocationId(record: CellLocationWriteRecord): Long? =
+		jdbcTemplate.query(
+			"""
+			SELECT id
+			FROM location
+			WHERE ST_Equals(coordinates, ST_SetSRID(ST_MakePoint(?, ?), 4326))
+			  AND address IS NOT DISTINCT FROM ?
+			  AND address1 IS NOT DISTINCT FROM ?
+			  AND zip4 = ?
+			  AND zip3 = ?
+			  AND postal_designation IS NOT DISTINCT FROM ?
+			  AND id_county_id IS NOT DISTINCT FROM ?
+			ORDER BY id
+			LIMIT 1
+			""".trimIndent(),
+			{ rs, _ -> rs.getLong("id") },
+			record.longitude,
+			record.latitude,
+			record.address,
+			record.address1,
+			record.zip4,
+			record.zip3,
+			record.postalDesignation,
+			record.countyId
+		).firstOrNull()
+
+	override fun findBandId(record: CellBandWriteRecord): Long? =
+		jdbcTemplate.query(
+			"""
+			SELECT id
+			FROM band
+			WHERE band IS NOT DISTINCT FROM ?
+			  AND bandwidth IS NOT DISTINCT FROM ?
+			  AND uplink_freq IS NOT DISTINCT FROM ?
+			  AND downlink_freq IS NOT DISTINCT FROM ?
+			  AND earfcn IS NOT DISTINCT FROM ?
+			ORDER BY id
+			LIMIT 1
+			""".trimIndent(),
+			{ rs, _ -> rs.getLong("id") },
+			record.band,
+			record.bandwidth,
+			record.uplinkFreq,
+			record.downlinkFreq,
+			record.earfcn
+		).firstOrNull()
+
+	override fun findEnbGnbId(enbGnb: Int, locationId: Long): Long? =
+		jdbcTemplate.query(
+			"""
+			SELECT id
+			FROM enbgnb
+			WHERE enb_gnb = ? AND location_id = ?
+			ORDER BY id
+			LIMIT 1
+			""".trimIndent(),
+			{ rs, _ -> rs.getLong("id") },
+			enbGnb,
+			locationId
 		).firstOrNull()
 
 	override fun insertLocation(record: CellLocationWriteRecord): Long =
@@ -164,9 +324,9 @@ class JdbcCellRepository(
 			"""
 			INSERT INTO cell (
 				lac_tac, ci, eci_nci, cgi, paragon_cgi, technology, azimuth, name,
-				band_id, enb_gnb_id, location_id, mcc_mnc_id, updated_by, created_by
+				band_id, enb_gnb_id, location_id, mcc_mnc_id, updated_by, created_by, created_at, updated_at
 			)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))
 			RETURNING id
 			""".trimIndent(),
 			Long::class.java,
@@ -183,7 +343,9 @@ class JdbcCellRepository(
 			record.locationId,
 			record.mccMncId,
 			record.updatedBy,
-			record.createdBy
+			record.createdBy,
+			record.createdAt,
+			record.updatedAt
 		) ?: throw IllegalStateException("Failed to create cell")
 
 	override fun updateCell(id: Long, record: CellWriteRecord): Int =
@@ -202,7 +364,8 @@ class JdbcCellRepository(
 			    enb_gnb_id = ?,
 			    location_id = ?,
 			    mcc_mnc_id = ?,
-			    updated_by = ?
+			    updated_by = ?,
+			    updated_at = COALESCE(?, updated_at)
 			WHERE id = ?
 			""".trimIndent(),
 			record.lacTac,
@@ -218,6 +381,7 @@ class JdbcCellRepository(
 			record.locationId,
 			record.mccMncId,
 			record.updatedBy,
+			record.updatedAt,
 			id
 		)
 

@@ -38,6 +38,12 @@ paths:
                 $ref: '#/components/schemas/AuthUserResponse'
         '400':
           $ref: '#/components/responses/ValidationError'
+        '413':
+          description: Ficheiro demasiado grande
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
@@ -225,7 +231,6 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '404':
           $ref: '#/components/responses/NotFoundError'
-
     post:
       tags: [Cells]
       summary: Criar cell
@@ -251,6 +256,90 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '409':
           $ref: '#/components/responses/ConflictError'
+
+  /api/cells/nearby:
+    get:
+      tags: [Cells]
+      summary: Obter cells vizinhas num raio
+      description: Procura cells num círculo em torno de uma cell central identificada por CGI.
+      security:
+        - SessionCookieAuth: []
+      parameters:
+        - name: cgi
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: radiusKm
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+            minimum: 0
+            exclusiveMinimum: true
+        - name: sameNetwork
+          in: query
+          required: false
+          description: Quando `1`/`true`, filtra apenas cells com o mesmo MNC da cell central.
+          schema:
+            type: string
+            enum: ['0', '1', 'false', 'true']
+        - name: techGeneration
+          in: query
+          required: false
+          description: Pode ser repetido ou enviado em CSV (`2G,4G,NB-IoT`).
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [2G, 3G, 4G, 5G, NB-IoT]
+          style: form
+          explode: true
+      responses:
+        '200':
+          description: Polygon da central e polygon_short das cells no raio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NearbyCellsResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/cells/import:
+    post:
+      tags: [Cells]
+      summary: Importar cells via CSV
+      description: Importa um ficheiro `.csv` de cells, criando/atualizando registos e respeitando timestamps por data da linha.
+      security:
+        - SessionCookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Importação concluída
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CellCsvImportResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
   /api/cells/{id}:
     put:
@@ -502,7 +591,6 @@ components:
     CellUpsertRequest:
       type: object
       required:
-        - lacTac
         - technology
         - azimuth
         - location
@@ -511,6 +599,7 @@ components:
       properties:
         lacTac:
           type: string
+          nullable: true
         ci:
           type: string
         eciNci:
@@ -625,6 +714,7 @@ components:
           format: int64
         lacTac:
           type: string
+          nullable: true
         ci:
           type: string
           nullable: true
@@ -767,6 +857,36 @@ components:
           type: number
           format: double
           nullable: true
+
+    NearbyCellsResponse:
+      type: object
+      required:
+        - centralCell
+        - cellsInRadius
+      properties:
+        centralCell:
+          $ref: '#/components/schemas/CellResponse'
+        cellsInRadius:
+          type: array
+          items:
+            $ref: '#/components/schemas/CellResponse'
+
+    CellCsvImportResponse:
+      type: object
+      required:
+        - rowsProcessed
+        - inserted
+        - updated
+        - polygonsUpserted
+      properties:
+        rowsProcessed:
+          type: integer
+        inserted:
+          type: integer
+        updated:
+          type: integer
+        polygonsUpserted:
+          type: integer
 
     ErrorResponse:
       type: object

@@ -30,6 +30,7 @@ class SecurityConfig {
 			.exceptionHandling { it.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)) }
 			.authorizeHttpRequests {
 				it.requestMatchers("/api/auth/login").permitAll()
+				it.requestMatchers("/error").permitAll()
 				it.anyRequest().authenticated()
 			}
 			.addFilterBefore(sessionCookieAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)

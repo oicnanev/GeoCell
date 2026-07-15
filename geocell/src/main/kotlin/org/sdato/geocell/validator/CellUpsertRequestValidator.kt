@@ -7,13 +7,10 @@ import org.springframework.stereotype.Component
 @Component
 class CellUpsertRequestValidator {
 
-	private val cgiPattern = Regex("^\\d{3}-\\d{2,3}-\\d{1,9}$|^\\d{3}-\\d{2,3}-\\d{1,5}-\\d{1,5}$")
+	private val cgiPattern = Regex("^\\d{3}-\\d{2,3}-\\d{1,11}$|^\\d{3}-\\d{2,3}-\\d{1,5}-\\d{1,11}$")
 	private val technologies = setOf(2, 3, 4, 5, 10)
 
 	fun validate(request: CellUpsertRequest) {
-		if (request.lacTac.isBlank()) {
-			throw ValidationException("lacTac is required")
-		}
 		if (request.technology !in technologies) {
 			throw ValidationException("technology must be one of [2, 3, 4, 5, 10]")
 		}

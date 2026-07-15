@@ -2,11 +2,14 @@ package org.sdato.geocell.controller.cell
 
 import org.sdato.geocell.domain.auth.AuthUserPrincipal
 import org.sdato.geocell.dto.request.CellUpsertRequest
+import org.sdato.geocell.dto.response.CellCsvImportResponse
+import org.sdato.geocell.dto.response.NearbyCellsResponse
 import org.sdato.geocell.dto.response.CellResponse
 import org.sdato.geocell.exception.InvalidCredentialsException
 import org.sdato.geocell.service.cell.CellService
 import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -18,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.multipart.MultipartFile
 
 @RestController
 @RequestMapping("/api/cells")
@@ -30,6 +34,15 @@ class CellController(
 	fun getByCgi(@RequestParam cgi: String): List<CellResponse> =
 		cellService.getCellsByCgi(cgi)
 
+	@GetMapping("/nearby")
+	fun getNearbyCells(
+		@RequestParam cgi: String,
+		@RequestParam radiusKm: Double,
+		@RequestParam(required = false) sameNetwork: String?,
+		@RequestParam(required = false) techGeneration: List<String>?
+	): NearbyCellsResponse =
+		cellService.getNearbyCells(cgi, radiusKm, sameNetwork, techGeneration)
+
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	fun createCell(
@@ -37,6 +50,13 @@ class CellController(
 		authentication: Authentication
 	): CellResponse =
 		cellService.createCell(request, requirePrincipal(authentication))
+
+	@PostMapping("/import", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+	fun importCellsCsv(
+		@RequestParam("file") file: MultipartFile,
+		authentication: Authentication
+	): CellCsvImportResponse =
+		cellService.importCellsCsv(file, requirePrincipal(authentication))
 
 	@PutMapping("/{id}")
 	fun updateCell(
