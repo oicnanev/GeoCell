@@ -16,6 +16,8 @@ import org.sdato.geocell.dto.response.CellEnbGnbResponse
 import org.sdato.geocell.dto.response.CellLocationResponse
 import org.sdato.geocell.dto.response.CellMccMncResponse
 import org.sdato.geocell.dto.response.CellResponse
+import org.sdato.geocell.dto.response.CellsInBboxResponse
+import org.sdato.geocell.dto.response.CellsInCircleResponse
 import org.sdato.geocell.dto.response.NearbyCellsResponse
 import org.sdato.geocell.exception.ResourceNotFoundException
 import org.sdato.geocell.exception.ValidationException
@@ -93,6 +95,61 @@ class CellService(
 			cellsInRadius = nearby
 				.filter { it.id != center.id }
 				.map { it.toResponse(includePolygon = false, includePolygonShort = true) }
+		)
+	}
+
+	fun getCellsInCircle(
+		latitude: Double,
+		longitude: Double,
+		radiusKm: Double,
+		mnc: Int?,
+		techGenerations: List<String>?
+	): CellsInCircleResponse {
+		if (radiusKm <= 0.0) {
+			throw ValidationException("radiusKm must be greater than 0")
+		}
+		val technologies = parseTechnologyGenerations(techGenerations)
+		val cells = cellRepository.findCellsInCircle(
+			latitude = latitude,
+			longitude = longitude,
+			radiusMeters = radiusKm * 1000.0,
+			mnc = mnc,
+			technologies = technologies
+		)
+		return CellsInCircleResponse(
+			centerLatitude = latitude,
+			centerLongitude = longitude,
+			radiusKm = radiusKm,
+			cells = cells.map { it.toResponse(includePolygon = false, includePolygonShort = true) }
+		)
+	}
+
+	fun getCellsInBbox(
+		lat1: Double,
+		lon1: Double,
+		lat2: Double,
+		lon2: Double,
+		mnc: Int?,
+		techGenerations: List<String>?
+	): CellsInBboxResponse {
+		if (lat1 == lat2 && lon1 == lon2) {
+			throw ValidationException("The two coordinates must define a bounding box, not the same point")
+		}
+		val technologies = parseTechnologyGenerations(techGenerations)
+		val cells = cellRepository.findCellsInBbox(
+			lat1 = lat1,
+			lon1 = lon1,
+			lat2 = lat2,
+			lon2 = lon2,
+			mnc = mnc,
+			technologies = technologies
+		)
+		return CellsInBboxResponse(
+			corner1Latitude = lat1,
+			corner1Longitude = lon1,
+			corner2Latitude = lat2,
+			corner2Longitude = lon2,
+			cells = cells.map { it.toResponse(includePolygon = false, includePolygonShort = true) }
 		)
 	}
 

@@ -102,6 +102,98 @@ class JdbcCellRepository(
 		)
 	}
 
+	override fun findCellsInCircle(
+		latitude: Double,
+		longitude: Double,
+		radiusMeters: Double,
+		mnc: Int?,
+		technologies: Set<Int>?
+	): List<CellDetailsRecord> {
+		val sql = StringBuilder(
+			"""
+			$baseSelect
+			WHERE l.coordinates IS NOT NULL
+			  AND ST_DWithin(
+			    l.coordinates::geography,
+			    ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography,
+			    ?
+			  )
+			""".trimIndent()
+		)
+		val params = mutableListOf<Any>(longitude, latitude, radiusMeters)
+
+		if (mnc != null) {
+			sql.append("\n  AND m.mnc = ?")
+			params.add(mnc)
+		}
+		if (!technologies.isNullOrEmpty()) {
+			sql.append("\n  AND c.technology IN (${technologies.joinToString(",") { "?" }})")
+			params.addAll(technologies)
+		}
+
+		sql.append(
+			"""
+			
+			ORDER BY ST_Distance(
+			  l.coordinates::geography,
+			  ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography
+			), c.id DESC
+			""".trimIndent()
+		)
+		params.add(longitude)
+		params.add(latitude)
+
+		return jdbcTemplate.query(
+			sql.toString(),
+			{ rs, _ -> rs.toCellDetailsRecord() },
+			*params.toTypedArray()
+		)
+	}
+
+	override fun findCellsInBbox(
+		lat1: Double,
+		lon1: Double,
+		lat2: Double,
+		lon2: Double,
+		mnc: Int?,
+		technologies: Set<Int>?
+	): List<CellDetailsRecord> {
+		val minLon = minOf(lon1, lon2)
+		val maxLon = maxOf(lon1, lon2)
+		val minLat = minOf(lat1, lat2)
+		val maxLat = maxOf(lat1, lat2)
+
+		val sql = StringBuilder(
+			"""
+			$baseSelect
+			WHERE l.coordinates IS NOT NULL
+			  AND ST_Within(
+			    l.coordinates,
+			    ST_MakeEnvelope(?, ?, ?, ?, 4326)
+			  )
+			""".trimIndent()
+		)
+		val params = mutableListOf<Any>(minLon, minLat, maxLon, maxLat)
+
+		if (mnc != null) {
+			sql.append("\n  AND m.mnc = ?")
+			params.add(mnc)
+		}
+		if (!technologies.isNullOrEmpty()) {
+			sql.append("\n  AND c.technology IN (${technologies.joinToString(",") { "?" }})")
+			params.addAll(technologies)
+		}
+
+		sql.append("\nORDER BY c.id DESC")
+
+		return jdbcTemplate.query(
+			sql.toString(),
+			{ rs, _ -> rs.toCellDetailsRecord() },
+			*params.toTypedArray()
+		)
+	}
+
+
 	override fun findById(id: Long): CellDetailsRecord? =
 		jdbcTemplate.query(
 			"$baseSelect WHERE c.id = ?",

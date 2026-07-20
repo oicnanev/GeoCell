@@ -16,6 +16,21 @@ interface CellRepository {
 		mnc: Int?,
 		technologies: Set<Int>?
 	): List<CellDetailsRecord>
+	fun findCellsInCircle(
+		latitude: Double,
+		longitude: Double,
+		radiusMeters: Double,
+		mnc: Int?,
+		technologies: Set<Int>?
+	): List<CellDetailsRecord>
+	fun findCellsInBbox(
+		lat1: Double,
+		lon1: Double,
+		lat2: Double,
+		lon2: Double,
+		mnc: Int?,
+		technologies: Set<Int>?
+	): List<CellDetailsRecord>
 	fun findById(id: Long): CellDetailsRecord?
 	fun findCountyId(districtId: String, countyId: String): Long?
 	fun findMccMncId(mcc: Int, mnc: Int): Long?

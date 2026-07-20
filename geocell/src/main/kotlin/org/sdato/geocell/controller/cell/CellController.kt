@@ -4,6 +4,8 @@ import org.sdato.geocell.domain.auth.AuthUserPrincipal
 import org.sdato.geocell.dto.request.CellUpsertRequest
 import org.sdato.geocell.dto.response.CellCsvImportResponse
 import org.sdato.geocell.dto.response.NearbyCellsResponse
+import org.sdato.geocell.dto.response.CellsInCircleResponse
+import org.sdato.geocell.dto.response.CellsInBboxResponse
 import org.sdato.geocell.dto.response.CellResponse
 import org.sdato.geocell.exception.InvalidCredentialsException
 import org.sdato.geocell.service.cell.CellService
@@ -42,6 +44,27 @@ class CellController(
 		@RequestParam(required = false) techGeneration: List<String>?
 	): NearbyCellsResponse =
 		cellService.getNearbyCells(cgi, radiusKm, sameNetwork, techGeneration)
+
+	@GetMapping("/search/circle")
+	fun getCellsInCircle(
+		@RequestParam lat: Double,
+		@RequestParam lon: Double,
+		@RequestParam radiusKm: Double,
+		@RequestParam(required = false) mnc: Int?,
+		@RequestParam(required = false) techGeneration: List<String>?
+	): CellsInCircleResponse =
+		cellService.getCellsInCircle(lat, lon, radiusKm, mnc, techGeneration)
+
+	@GetMapping("/search/bbox")
+	fun getCellsInBbox(
+		@RequestParam lat1: Double,
+		@RequestParam lon1: Double,
+		@RequestParam lat2: Double,
+		@RequestParam lon2: Double,
+		@RequestParam(required = false) mnc: Int?,
+		@RequestParam(required = false) techGeneration: List<String>?
+	): CellsInBboxResponse =
+		cellService.getCellsInBbox(lat1, lon1, lat2, lon2, mnc, techGeneration)
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)

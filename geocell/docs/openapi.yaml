@@ -310,6 +310,137 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
+  /api/cells/search/circle:
+    get:
+      tags: [Cells]
+      summary: Pesquisar cells num círculo por coordenadas
+      description: |
+        Devolve todas as cells dentro de um círculo definido pelas coordenadas centrais e raio,
+        com filtros opcionais por rede (MNC) e geração tecnológica.
+        As cells são ordenadas por distância ao centro.
+      security:
+        - SessionCookieAuth: []
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          description: Latitude do centro do círculo.
+          schema:
+            type: number
+            format: double
+        - name: lon
+          in: query
+          required: true
+          description: Longitude do centro do círculo.
+          schema:
+            type: number
+            format: double
+        - name: radiusKm
+          in: query
+          required: true
+          description: Raio de pesquisa em quilómetros (deve ser > 0).
+          schema:
+            type: number
+            format: double
+            minimum: 0
+            exclusiveMinimum: true
+        - name: mnc
+          in: query
+          required: false
+          description: Filtrar por MNC (código de rede). Quando omitido, devolve todas as redes.
+          schema:
+            type: integer
+        - name: techGeneration
+          in: query
+          required: false
+          description: Filtrar por geração tecnológica. Pode ser repetido ou enviado em CSV (`2G,4G`).
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [2G, 3G, 4G, 5G, NB-IoT]
+          style: form
+          explode: true
+      responses:
+        '200':
+          description: Cells encontradas dentro do círculo, ordenadas por distância ao centro.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CellsInCircleResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/cells/search/bbox:
+    get:
+      tags: [Cells]
+      summary: Pesquisar cells num rectângulo delimitador
+      description: |
+        Devolve todas as cells dentro do rectângulo (bounding box) definido por dois pontos
+        (cantos opostos). A ordem dos cantos é indiferente — o sistema calcula automaticamente
+        o envelope mínimo. Filtros opcionais por rede (MNC) e geração tecnológica.
+      security:
+        - SessionCookieAuth: []
+      parameters:
+        - name: lat1
+          in: query
+          required: true
+          description: Latitude do primeiro canto.
+          schema:
+            type: number
+            format: double
+        - name: lon1
+          in: query
+          required: true
+          description: Longitude do primeiro canto.
+          schema:
+            type: number
+            format: double
+        - name: lat2
+          in: query
+          required: true
+          description: Latitude do segundo canto (canto oposto).
+          schema:
+            type: number
+            format: double
+        - name: lon2
+          in: query
+          required: true
+          description: Longitude do segundo canto (canto oposto).
+          schema:
+            type: number
+            format: double
+        - name: mnc
+          in: query
+          required: false
+          description: Filtrar por MNC (código de rede). Quando omitido, devolve todas as redes.
+          schema:
+            type: integer
+        - name: techGeneration
+          in: query
+          required: false
+          description: Filtrar por geração tecnológica. Pode ser repetido ou enviado em CSV (`2G,4G`).
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [2G, 3G, 4G, 5G, NB-IoT]
+          style: form
+          explode: true
+      responses:
+        '200':
+          description: Cells encontradas dentro do rectângulo delimitador.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CellsInBboxResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
   /api/cells/import:
     post:
       tags: [Cells]
@@ -868,6 +999,63 @@ components:
           $ref: '#/components/schemas/CellResponse'
         cellsInRadius:
           type: array
+          items:
+            $ref: '#/components/schemas/CellResponse'
+
+    CellsInCircleResponse:
+      type: object
+      required:
+        - centerLatitude
+        - centerLongitude
+        - radiusKm
+        - cells
+      properties:
+        centerLatitude:
+          type: number
+          format: double
+          description: Latitude do centro do círculo de pesquisa.
+        centerLongitude:
+          type: number
+          format: double
+          description: Longitude do centro do círculo de pesquisa.
+        radiusKm:
+          type: number
+          format: double
+          description: Raio de pesquisa em quilómetros.
+        cells:
+          type: array
+          description: Cells encontradas, ordenadas por distância ao centro.
+          items:
+            $ref: '#/components/schemas/CellResponse'
+
+    CellsInBboxResponse:
+      type: object
+      required:
+        - corner1Latitude
+        - corner1Longitude
+        - corner2Latitude
+        - corner2Longitude
+        - cells
+      properties:
+        corner1Latitude:
+          type: number
+          format: double
+          description: Latitude do primeiro canto do rectângulo.
+        corner1Longitude:
+          type: number
+          format: double
+          description: Longitude do primeiro canto do rectângulo.
+        corner2Latitude:
+          type: number
+          format: double
+          description: Latitude do segundo canto do rectângulo.
+        corner2Longitude:
+          type: number
+          format: double
+          description: Longitude do segundo canto do rectângulo.
+        cells:
+          type: array
+          description: Cells encontradas dentro do rectângulo delimitador.
           items:
             $ref: '#/components/schemas/CellResponse'
 
