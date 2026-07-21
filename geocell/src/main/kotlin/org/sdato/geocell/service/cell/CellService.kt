@@ -12,7 +12,10 @@ import org.sdato.geocell.domain.cell.CellWriteRecord
 import org.sdato.geocell.dto.request.CellUpsertRequest
 import org.sdato.geocell.dto.response.CellCsvImportResponse
 import org.sdato.geocell.dto.response.CellBandResponse
+import org.sdato.geocell.dto.response.CellsByAdministrativeAreaResponse
 import org.sdato.geocell.dto.response.CellEnbGnbResponse
+import org.sdato.geocell.dto.response.CountyResponse
+import org.sdato.geocell.dto.response.DistrictResponse
 import org.sdato.geocell.dto.response.CellLocationResponse
 import org.sdato.geocell.dto.response.CellMccMncResponse
 import org.sdato.geocell.dto.response.CellResponse
@@ -52,6 +55,90 @@ class CellService(
 			throw ResourceNotFoundException("No cells found for cgi '$normalizedCgi'")
 		}
 		return cells.map { it.toResponse() }
+	}
+
+	fun getDistrictsByCountry(country: String): List<DistrictResponse> {
+		val normalizedCountry = country.trim()
+		if (normalizedCountry.isBlank()) {
+			throw ValidationException("country query parameter is required")
+		}
+		val districts = cellRepository.findDistrictsByCountry(normalizedCountry)
+		if (districts.isEmpty()) {
+			throw ResourceNotFoundException("No districts found for country '$normalizedCountry'")
+		}
+		return districts.map {
+			DistrictResponse(
+				id = it.id,
+				district = it.district,
+				countryId = it.countryId
+			)
+		}
+	}
+
+	fun getCountiesByDistrict(districtId: String): List<CountyResponse> {
+		val normalizedDistrictId = districtId.trim()
+		if (normalizedDistrictId.isBlank()) {
+			throw ValidationException("districtId query parameter is required")
+		}
+		val counties = cellRepository.findCountiesByDistrict(normalizedDistrictId)
+		if (counties.isEmpty()) {
+			throw ResourceNotFoundException("No counties found for district '$normalizedDistrictId'")
+		}
+		return counties.map {
+			CountyResponse(
+				id = it.id,
+				countyCode = it.countyCode,
+				county = it.county,
+				districtId = it.districtId
+			)
+		}
+	}
+
+	fun getCellsByAdministrativeArea(
+		districtId: String,
+		countyId: Long?,
+		mnc: Int?,
+		techGenerations: List<String>?
+	): CellsByAdministrativeAreaResponse {
+		val normalizedDistrictId = districtId.trim()
+		if (normalizedDistrictId.isBlank()) {
+			throw ValidationException("districtId query parameter is required")
+		}
+		if (countyId != null && countyId <= 0) {
+			throw ValidationException("countyId must be greater than 0")
+		}
+		if (mnc != null && mnc < 0) {
+			throw ValidationException("mnc must be greater than or equal to 0")
+		}
+
+		val technologies = parseTechnologyGenerations(techGenerations)
+		val cells = cellRepository.findCellsByAdministrativeArea(
+			districtId = normalizedDistrictId,
+			countyId = countyId,
+			mnc = mnc,
+			technologies = technologies
+		)
+		if (cells.isEmpty()) {
+			throw ResourceNotFoundException("No cells found for the requested district/county filters")
+		}
+		val caopPolygonGeoJson = if (countyId != null) {
+			cells.asSequence().mapNotNull { it.caopPolygonGeoJson }.firstOrNull()
+		} else {
+			null
+		}
+
+		return CellsByAdministrativeAreaResponse(
+			districtId = normalizedDistrictId,
+			countyId = countyId,
+			caopPolygonGeoJson = caopPolygonGeoJson,
+			cells = cells.map {
+				it.toResponse(
+					includePolygon = false,
+					includePolygonShort = true,
+					includeCaopPolygon = false
+				)
+			}
+		)
 	}
 
 	fun getNearbyCells(
@@ -641,7 +728,8 @@ class CellService(
 
 	private fun CellDetailsRecord.toResponse(
 		includePolygon: Boolean = true,
-		includePolygonShort: Boolean = true
+		includePolygonShort: Boolean = true,
+		includeCaopPolygon: Boolean = true
 	): CellResponse =
 		CellResponse(
 			id = id,
@@ -699,7 +787,8 @@ class CellService(
 				)
 			},
 			polygonGeoJson = if (includePolygon) polygonGeoJson else null,
-			polygonShortGeoJson = if (includePolygonShort) polygonShortGeoJson else null
+			polygonShortGeoJson = if (includePolygonShort) polygonShortGeoJson else null,
+			caopPolygonGeoJson = if (includeCaopPolygon) caopPolygonGeoJson else null
 		)
 
 	private data class CsvCellRow(

@@ -249,9 +249,32 @@ A especificação completa está em [`openapi.yaml`](./openapi.yaml).
 | PUT    | `/{id}`                | Actualizar célula existente                                | ✅   |
 | DELETE | `/{id}`                | Remover célula                                             | ✅   |
 | POST   | `/import`              | Importar células via ficheiro CSV (multipart)              | ✅   |
+| GET    | `/districts`           | Listar distritos de um país (`?country=`)                  | ✅   |
+| GET    | `/counties`            | Listar concelhos de um distrito (`?districtId=`)           | ✅   |
 | GET    | `/nearby`              | Células num raio em torno de uma célula por CGI            | ✅   |
 | GET    | `/search/circle`       | Células num círculo por coordenadas + raio                 | ✅   |
 | GET    | `/search/bbox`         | Células num rectângulo definido por dois pontos            | ✅   |
+| GET    | `/search/county`       | Células por distrito/concelho + filtros de rede/tecnologia | ✅   |
+
+#### `GET /api/cells/districts`
+
+Lista os distritos de um país.
+
+| Parâmetro | Tipo   | Obrig. | Descrição        |
+|-----------|--------|--------|------------------|
+| `country` | string | ✅     | Nome do país     |
+
+**Resposta:** `DistrictResponse[]`
+
+#### `GET /api/cells/counties`
+
+Lista os concelhos de um distrito.
+
+| Parâmetro    | Tipo   | Obrig. | Descrição          |
+|--------------|--------|--------|--------------------|
+| `districtId` | string | ✅     | ID do distrito     |
+
+**Resposta:** `CountyResponse[]`
 
 #### `GET /api/cells/nearby`
 
@@ -307,6 +330,20 @@ ST_Within(l.coordinates,
           ST_MakeEnvelope(minLon, minLat, maxLon, maxLat, 4326))
 ```
 
+#### `GET /api/cells/search/county`
+
+Pesquisa células pelos concelhos de um distrito inteiro, ou por um concelho específico quando `countyId` é enviado.
+
+| Parâmetro        | Tipo     | Obrig. | Descrição                           |
+|------------------|----------|--------|-------------------------------------|
+| `districtId`     | string   | ✅     | ID do distrito                      |
+| `countyId`       | int64    | ❌     | ID interno do concelho              |
+| `mnc`            | integer  | ❌     | MNC                                 |
+| `techGeneration` | string[] | ❌     | `2G`, `3G`, `4G`, `5G`, `NB-IoT`    |
+
+**Resposta:** `CellsByAdministrativeAreaResponse { districtId, countyId, caopPolygonGeoJson, cells[] }`  
+Quando `countyId` é enviado, `caopPolygonGeoJson` vem uma única vez ao nível da resposta.
+
 ---
 
 ## 7. Services
@@ -316,9 +353,12 @@ ST_Within(l.coordinates,
 Principal service da aplicação. Responsabilidades:
 
 - **`getCellsByCgi(cgi)`** — normaliza e pesquisa por `cgi` ou `paragon_cgi`.
+- **`getDistrictsByCountry(country)`** — lista distritos por país.
+- **`getCountiesByDistrict(districtId)`** — lista concelhos por distrito.
 - **`getNearbyCells(cgi, radiusKm, sameNetwork, techGenerations)`** — resolve coordenadas da célula central e delega no repositório.
 - **`getCellsInCircle(lat, lon, radiusKm, mnc, techGenerations)`** — pesquisa geoespacial por coordenadas directas.
 - **`getCellsInBbox(lat1, lon1, lat2, lon2, mnc, techGenerations)`** — pesquisa por rectângulo delimitador.
+- **`getCellsByAdministrativeArea(districtId, countyId, mnc, techGenerations)`** — pesquisa por distrito/concelho com filtros e polígono CAOP correspondente.
 - **`createCell(request, principal)`** — cria/resolve `location`, `band`, `mccmnc`, `enbgnb` e a `cell`; gera polígonos.
 - **`updateCell(id, request, principal)`** — actualiza todos os sub-registos e regenera polígonos.
 - **`deleteCell(id)`** — remove a célula (cascade para `cell_polygon`).

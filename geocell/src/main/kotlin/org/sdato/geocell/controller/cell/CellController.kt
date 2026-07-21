@@ -3,10 +3,13 @@ package org.sdato.geocell.controller.cell
 import org.sdato.geocell.domain.auth.AuthUserPrincipal
 import org.sdato.geocell.dto.request.CellUpsertRequest
 import org.sdato.geocell.dto.response.CellCsvImportResponse
+import org.sdato.geocell.dto.response.CellsByAdministrativeAreaResponse
 import org.sdato.geocell.dto.response.NearbyCellsResponse
 import org.sdato.geocell.dto.response.CellsInCircleResponse
 import org.sdato.geocell.dto.response.CellsInBboxResponse
 import org.sdato.geocell.dto.response.CellResponse
+import org.sdato.geocell.dto.response.CountyResponse
+import org.sdato.geocell.dto.response.DistrictResponse
 import org.sdato.geocell.exception.InvalidCredentialsException
 import org.sdato.geocell.service.cell.CellService
 import org.springframework.context.annotation.Profile
@@ -35,6 +38,14 @@ class CellController(
 	@GetMapping
 	fun getByCgi(@RequestParam cgi: String): List<CellResponse> =
 		cellService.getCellsByCgi(cgi)
+
+	@GetMapping("/districts")
+	fun getDistrictsByCountry(@RequestParam country: String): List<DistrictResponse> =
+		cellService.getDistrictsByCountry(country)
+
+	@GetMapping("/counties")
+	fun getCountiesByDistrict(@RequestParam districtId: String): List<CountyResponse> =
+		cellService.getCountiesByDistrict(districtId)
 
 	@GetMapping("/nearby")
 	fun getNearbyCells(
@@ -65,6 +76,15 @@ class CellController(
 		@RequestParam(required = false) techGeneration: List<String>?
 	): CellsInBboxResponse =
 		cellService.getCellsInBbox(lat1, lon1, lat2, lon2, mnc, techGeneration)
+
+	@GetMapping("/search/county")
+	fun getCellsByAdministrativeArea(
+		@RequestParam districtId: String,
+		@RequestParam(required = false) countyId: Long?,
+		@RequestParam(required = false) mnc: Int?,
+		@RequestParam(required = false) techGeneration: List<String>?
+	): CellsByAdministrativeAreaResponse =
+		cellService.getCellsByAdministrativeArea(districtId, countyId, mnc, techGeneration)
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)

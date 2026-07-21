@@ -257,6 +257,64 @@ paths:
         '409':
           $ref: '#/components/responses/ConflictError'
 
+  /api/cells/districts:
+    get:
+      tags: [Cells]
+      summary: Listar distritos por país
+      description: Devolve os distritos associados ao país indicado.
+      security:
+        - SessionCookieAuth: []
+      parameters:
+        - name: country
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Distritos encontrados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DistrictResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/cells/counties:
+    get:
+      tags: [Cells]
+      summary: Listar concelhos por distrito
+      description: Devolve os concelhos associados ao distrito indicado.
+      security:
+        - SessionCookieAuth: []
+      parameters:
+        - name: districtId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Concelhos encontrados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CountyResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
   /api/cells/nearby:
     get:
       tags: [Cells]
@@ -440,6 +498,59 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+
+  /api/cells/search/county:
+    get:
+      tags: [Cells]
+      summary: Pesquisar cells por distrito/concelho
+      description: |
+        Pesquisa cells pertencentes aos concelhos de um distrito.
+        Se `countyId` for enviado, restringe apenas a esse concelho.
+        Permite filtros opcionais por MNC e geração tecnológica.
+        Quando `countyId` é enviado, a resposta inclui uma única vez o polígono CAOP correspondente (`caopPolygonGeoJson`).
+      security:
+        - SessionCookieAuth: []
+      parameters:
+        - name: districtId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: countyId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: mnc
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: techGeneration
+          in: query
+          required: false
+          description: Pode ser repetido ou enviado em CSV (`2G,4G,NB-IoT`).
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [2G, 3G, 4G, 5G, NB-IoT]
+          style: form
+          explode: true
+      responses:
+        '200':
+          description: Cells encontradas para o distrito/concelho.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CellsByAdministrativeAreaResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
   /api/cells/import:
     post:
@@ -887,6 +998,41 @@ components:
         polygonShortGeoJson:
           type: string
           nullable: true
+        caopPolygonGeoJson:
+          type: string
+          nullable: true
+
+    DistrictResponse:
+      type: object
+      required:
+        - id
+        - district
+        - countryId
+      properties:
+        id:
+          type: string
+        district:
+          type: string
+        countryId:
+          type: string
+
+    CountyResponse:
+      type: object
+      required:
+        - id
+        - countyCode
+        - county
+        - districtId
+      properties:
+        id:
+          type: integer
+          format: int64
+        countyCode:
+          type: string
+        county:
+          type: string
+        districtId:
+          type: string
 
     CellLocationResponse:
       type: object
@@ -1056,6 +1202,26 @@ components:
         cells:
           type: array
           description: Cells encontradas dentro do rectângulo delimitador.
+          items:
+            $ref: '#/components/schemas/CellResponse'
+
+    CellsByAdministrativeAreaResponse:
+      type: object
+      required:
+        - districtId
+        - cells
+      properties:
+        districtId:
+          type: string
+        countyId:
+          type: integer
+          format: int64
+          nullable: true
+        caopPolygonGeoJson:
+          type: string
+          nullable: true
+        cells:
+          type: array
           items:
             $ref: '#/components/schemas/CellResponse'
 

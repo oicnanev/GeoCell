@@ -4,6 +4,8 @@ import org.sdato.geocell.domain.cell.CellBandRecord
 import org.sdato.geocell.domain.cell.CellBandWriteRecord
 import org.sdato.geocell.domain.cell.CellDetailsRecord
 import org.sdato.geocell.domain.cell.CellEnbGnbRecord
+import org.sdato.geocell.domain.cell.CountyRecord
+import org.sdato.geocell.domain.cell.DistrictRecord
 import org.sdato.geocell.domain.cell.CellLocationRecord
 import org.sdato.geocell.domain.cell.CellLocationWriteRecord
 import org.sdato.geocell.domain.cell.CellMccMncRecord
@@ -28,6 +30,79 @@ class JdbcCellRepository(
 			cgi,
 			cgi
 		)
+
+	override fun findDistrictsByCountry(country: String): List<DistrictRecord> =
+		jdbcTemplate.query(
+			"""
+			SELECT id, district, country_id
+			FROM district
+			WHERE LOWER(country_id) = LOWER(?)
+			ORDER BY district
+			""".trimIndent(),
+			{ rs, _ ->
+				DistrictRecord(
+					id = rs.getString("id"),
+					district = rs.getString("district"),
+					countryId = rs.getString("country_id")
+				)
+			},
+			country
+		)
+
+	override fun findCountiesByDistrict(districtId: String): List<CountyRecord> =
+		jdbcTemplate.query(
+			"""
+			SELECT id, id_county, county, district_id
+			FROM county
+			WHERE district_id = ?
+			ORDER BY county
+			""".trimIndent(),
+			{ rs, _ ->
+				CountyRecord(
+					id = rs.getLong("id"),
+					countyCode = rs.getString("id_county"),
+					county = rs.getString("county"),
+					districtId = rs.getString("district_id")
+				)
+			},
+			districtId
+		)
+
+	override fun findCellsByAdministrativeArea(
+		districtId: String,
+		countyId: Long?,
+		mnc: Int?,
+		technologies: Set<Int>?
+	): List<CellDetailsRecord> {
+		val sql = StringBuilder(
+			"""
+			$baseSelectWithCaop
+			WHERE cty.district_id = ?
+			""".trimIndent()
+		)
+		val params = mutableListOf<Any>(districtId)
+
+		if (countyId != null) {
+			sql.append("\n  AND cty.id = ?")
+			params.add(countyId)
+		}
+		if (mnc != null) {
+			sql.append("\n  AND m.mnc = ?")
+			params.add(mnc)
+		}
+		if (!technologies.isNullOrEmpty()) {
+			sql.append("\n  AND c.technology IN (${technologies.joinToString(",") { "?" }})")
+			params.addAll(technologies)
+		}
+
+		sql.append("\nORDER BY c.id DESC")
+
+		return jdbcTemplate.query(
+			sql.toString(),
+			{ rs, _ -> rs.toCellDetailsRecord() },
+			*params.toTypedArray()
+		)
+	}
 
 	override fun findByIdentifiers(cgi: String?, paragonCgi: String?): CellDetailsRecord? {
 		if (cgi == null && paragonCgi == null) {
@@ -566,7 +641,8 @@ class JdbcCellRepository(
 				)
 			},
 			polygonGeoJson = getString("polygon_geojson"),
-			polygonShortGeoJson = getString("polygon_short_geojson")
+			polygonShortGeoJson = getString("polygon_short_geojson"),
+			caopPolygonGeoJson = getString("caop_polygon_geojson")
 		)
 	}
 
@@ -627,13 +703,74 @@ class JdbcCellRepository(
 				b.downlink_freq,
 				b.earfcn,
 				ST_AsGeoJSON(cp.polygon)::text AS polygon_geojson,
-				ST_AsGeoJSON(cp.polygon_short)::text AS polygon_short_geojson
+				ST_AsGeoJSON(cp.polygon_short)::text AS polygon_short_geojson,
+				NULL::text AS caop_polygon_geojson
 			FROM cell c
 			LEFT JOIN location l ON l.id = c.location_id
 			LEFT JOIN enbgnb e ON e.id = c.enb_gnb_id
 			LEFT JOIN mccmnc m ON m.id = c.mcc_mnc_id
 			LEFT JOIN band b ON b.id = c.band_id
 			LEFT JOIN cell_polygon cp ON cp.cell_id = c.id
+		"""
+
+		private const val baseSelectWithCaop = """
+			SELECT
+				c.id AS cell_id,
+				c.lac_tac,
+				c.ci,
+				c.eci_nci,
+				c.cgi,
+				c.paragon_cgi,
+				c.technology,
+				c.azimuth,
+				c.name AS cell_name,
+				c.created_at,
+				c.updated_at,
+				l.id AS location_id,
+				ST_Y(l.coordinates) AS location_latitude,
+				ST_X(l.coordinates) AS location_longitude,
+				l.address AS location_address,
+				l.address1 AS location_address1,
+				l.zip4,
+				l.zip3,
+				l.postal_designation,
+				l.id_county_id AS county_id,
+				e.id AS enb_gnb_id,
+				e.enb_gnb,
+				m.id AS mccmnc_id,
+				m.type AS mccmnc_type,
+				m.mcc,
+				m.mnc,
+				m.brand,
+				m."operator" AS operator_name,
+				m.status AS mccmnc_status,
+				m.bands AS mccmnc_bands,
+				m.notes AS mccmnc_notes,
+				m.country_id AS mccmnc_country_id,
+				b.id AS band_id,
+				b.band AS band_name,
+				b.bandwidth,
+				b.uplink_freq,
+				b.downlink_freq,
+				b.earfcn,
+				ST_AsGeoJSON(cp.polygon)::text AS polygon_geojson,
+				ST_AsGeoJSON(cp.polygon_short)::text AS polygon_short_geojson,
+				caop.caop_polygon_geojson
+			FROM cell c
+			LEFT JOIN location l ON l.id = c.location_id
+			LEFT JOIN county cty ON cty.id = l.id_county_id
+			LEFT JOIN enbgnb e ON e.id = c.enb_gnb_id
+			LEFT JOIN mccmnc m ON m.id = c.mcc_mnc_id
+			LEFT JOIN band b ON b.id = c.band_id
+			LEFT JOIN cell_polygon cp ON cp.cell_id = c.id
+			LEFT JOIN LATERAL (
+				SELECT ST_AsGeoJSON(ca.wkb_geometry)::text AS caop_polygon_geojson
+				FROM caop_23p ca
+				WHERE l.coordinates IS NOT NULL
+				  AND ST_Intersects(ca.wkb_geometry, l.coordinates)
+				ORDER BY ca.area_ha DESC
+				LIMIT 1
+			) caop ON TRUE
 		"""
 	}
 }

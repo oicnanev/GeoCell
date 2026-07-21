@@ -1,13 +1,23 @@
 package org.sdato.geocell.repository.cell
 
 import org.sdato.geocell.domain.cell.CellBandWriteRecord
+import org.sdato.geocell.domain.cell.CountyRecord
 import org.sdato.geocell.domain.cell.CellDetailsRecord
+import org.sdato.geocell.domain.cell.DistrictRecord
 import org.sdato.geocell.domain.cell.CellLocationWriteRecord
 import org.sdato.geocell.domain.cell.CellMccMncWriteRecord
 import org.sdato.geocell.domain.cell.CellWriteRecord
 
 interface CellRepository {
 	fun findByCgi(cgi: String): List<CellDetailsRecord>
+	fun findDistrictsByCountry(country: String): List<DistrictRecord>
+	fun findCountiesByDistrict(districtId: String): List<CountyRecord>
+	fun findCellsByAdministrativeArea(
+		districtId: String,
+		countyId: Long?,
+		mnc: Int?,
+		technologies: Set<Int>?
+	): List<CellDetailsRecord>
 	fun findByIdentifiers(cgi: String?, paragonCgi: String?): CellDetailsRecord?
 	fun findNearbyCells(
 		latitude: Double,

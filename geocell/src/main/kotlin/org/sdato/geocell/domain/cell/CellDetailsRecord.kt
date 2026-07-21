@@ -19,7 +19,8 @@ data class CellDetailsRecord(
 	val mccMnc: CellMccMncRecord?,
 	val band: CellBandRecord?,
 	val polygonGeoJson: String?,
-	val polygonShortGeoJson: String?
+	val polygonShortGeoJson: String?,
+	val caopPolygonGeoJson: String?
 )
 
 data class CellLocationRecord(
