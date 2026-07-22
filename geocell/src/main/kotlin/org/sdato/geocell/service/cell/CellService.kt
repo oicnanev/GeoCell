@@ -167,6 +167,17 @@ class CellService(
 		)
 	}
 
+	fun getCellsByEnbGnb(enbGnb: Int): List<CellResponse> {
+		if (enbGnb <= 0) {
+			throw ValidationException("enbGnb must be greater than 0")
+		}
+		val cells = cellRepository.findCellsByEnbGnb(enbGnb)
+		if (cells.isEmpty()) {
+			throw ResourceNotFoundException("No cells found for enbGnb '$enbGnb'")
+		}
+		return cells.map { it.toResponse() }
+	}
+
 	fun getNearbyCells(
 		cgi: String,
 		radiusKm: Double,

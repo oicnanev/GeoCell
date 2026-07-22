@@ -640,6 +640,35 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
+  /api/cells/search/enb-gnb:
+    get:
+      tags: [Cells]
+      summary: Pesquisar cells por eNB/gNB
+      description: Devolve todas as cells associadas ao eNB/gNB indicado.
+      security:
+        - SessionCookieAuth: []
+      parameters:
+        - name: enbGnb
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Cells encontradas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CellResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
   /api/cells/import:
     post:
       tags: [Cells]

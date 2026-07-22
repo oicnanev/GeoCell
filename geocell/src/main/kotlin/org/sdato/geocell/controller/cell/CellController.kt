@@ -105,6 +105,10 @@ class CellController(
 	): LacTacCoverageResponse =
 		cellService.getLacTacCoveragePolygon(mcc, mnc, lacTac)
 
+	@GetMapping("/search/enb-gnb")
+	fun getCellsByEnbGnb(@RequestParam enbGnb: Int): List<CellResponse> =
+		cellService.getCellsByEnbGnb(enbGnb)
+
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	fun createCell(

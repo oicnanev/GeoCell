@@ -257,6 +257,7 @@ A especificação completa está em [`openapi.yaml`](./openapi.yaml).
 | GET    | `/search/county`       | Células por distrito/concelho + filtros de rede/tecnologia | ✅   |
 | GET    | `/search/lac-tac`      | Células por MCC/MNC/LAC-TAC                                | ✅   |
 | GET    | `/search/lac-tac/polygon` | Polygon de cobertura por MCC/MNC/LAC-TAC               | ✅   |
+| GET    | `/search/enb-gnb`      | Células por eNB/gNB                                        | ✅   |
 
 #### `GET /api/cells/districts`
 
@@ -372,6 +373,16 @@ Calcula o polygon de cobertura a partir das localizações das cells do mesmo `M
 
 **Resposta:** `LacTacCoverageResponse { mcc, mnc, lacTac, polygonGeoJson }`
 
+#### `GET /api/cells/search/enb-gnb`
+
+Pesquisa cells associadas ao mesmo `eNB/gNB`.
+
+| Parâmetro | Tipo    | Obrig. | Descrição |
+|-----------|---------|--------|-----------|
+| `enbGnb`  | integer | ✅     | eNB/gNB   |
+
+**Resposta:** `CellResponse[]`
+
 ---
 
 ## 7. Services
@@ -389,6 +400,7 @@ Principal service da aplicação. Responsabilidades:
 - **`getCellsByAdministrativeArea(districtId, countyId, mnc, techGenerations)`** — pesquisa por distrito/concelho com filtros e polígono CAOP correspondente.
 - **`getCellsByLacTac(mcc, mnc, lacTac)`** — lista cells pelo mesmo MCC/MNC/LAC-TAC.
 - **`getLacTacCoveragePolygon(mcc, mnc, lacTac)`** — calcula o polygon de cobertura por MCC/MNC/LAC-TAC.
+- **`getCellsByEnbGnb(enbGnb)`** — lista cells pelo mesmo eNB/gNB.
 - **`createCell(request, principal)`** — cria/resolve `location`, `band`, `mccmnc`, `enbgnb` e a `cell`; gera polígonos.
 - **`updateCell(id, request, principal)`** — actualiza todos os sub-registos e regenera polígonos.
 - **`deleteCell(id)`** — remove a célula (cascade para `cell_polygon`).

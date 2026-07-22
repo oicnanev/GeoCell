@@ -20,6 +20,7 @@ interface CellRepository {
 	): List<CellDetailsRecord>
 	fun findCellsByLacTac(mcc: Int, mnc: Int, lacTac: String): List<CellDetailsRecord>
 	fun findLacTacCoveragePolygon(mcc: Int, mnc: Int, lacTac: String): String?
+	fun findCellsByEnbGnb(enbGnb: Int): List<CellDetailsRecord>
 	fun findByIdentifiers(cgi: String?, paragonCgi: String?): CellDetailsRecord?
 	fun findNearbyCells(
 		latitude: Double,

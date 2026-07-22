@@ -142,6 +142,17 @@ class JdbcCellRepository(
 			lacTac
 		).firstOrNull()
 
+	override fun findCellsByEnbGnb(enbGnb: Int): List<CellDetailsRecord> =
+		jdbcTemplate.query(
+			"""
+			$baseSelect
+			WHERE e.enb_gnb = ?
+			ORDER BY c.id DESC
+			""".trimIndent(),
+			{ rs, _ -> rs.toCellDetailsRecord() },
+			enbGnb
+		)
+
 	override fun findByIdentifiers(cgi: String?, paragonCgi: String?): CellDetailsRecord? {
 		if (cgi == null && paragonCgi == null) {
 			return null
