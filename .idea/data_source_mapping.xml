@@ -3,6 +3,7 @@
   <component name="DataSourcePerFileMappings">
     <file url="file://$PROJECT_DIR$/README.md" value="f899e98d-2f05-49ab-b4b5-0dcca840ac79" />
     <file url="file://$PROJECT_DIR$/geocell/src/main/kotlin/org/sdato/geocell/repository/auth/AuthSessionRepository.kt" value="f899e98d-2f05-49ab-b4b5-0dcca840ac79" />
+    <file url="file://$PROJECT_DIR$/geocell/src/main/kotlin/org/sdato/geocell/repository/cell/JdbcCellRepository.kt" value="f899e98d-2f05-49ab-b4b5-0dcca840ac79" />
     <file url="file://$PROJECT_DIR$/geocell/src/sql/create_schema.sql" value="f899e98d-2f05-49ab-b4b5-0dcca840ac79" />
     <file url="file://$PROJECT_DIR$/geocell/src/sql/inserts/country.sql" value="f899e98d-2f05-49ab-b4b5-0dcca840ac79" />
     <file url="file://$PROJECT_DIR$/geocell/src/sql/inserts/county.sql" value="f899e98d-2f05-49ab-b4b5-0dcca840ac79" />

@@ -16,6 +16,7 @@ import org.sdato.geocell.dto.response.CellsByAdministrativeAreaResponse
 import org.sdato.geocell.dto.response.CellEnbGnbResponse
 import org.sdato.geocell.dto.response.CountyResponse
 import org.sdato.geocell.dto.response.DistrictResponse
+import org.sdato.geocell.dto.response.LacTacCoverageResponse
 import org.sdato.geocell.dto.response.CellLocationResponse
 import org.sdato.geocell.dto.response.CellMccMncResponse
 import org.sdato.geocell.dto.response.CellResponse
@@ -141,6 +142,31 @@ class CellService(
 		)
 	}
 
+	fun getCellsByLacTac(mcc: Int, mnc: Int, lacTac: String): List<CellResponse> {
+		validateMccMncAndLacTac(mcc, mnc, lacTac)
+		val cells = cellRepository.findCellsByLacTac(mcc, mnc, lacTac.trim())
+		if (cells.isEmpty()) {
+			throw ResourceNotFoundException("No cells found for MCC $mcc, MNC $mnc and LAC/TAC '$lacTac'")
+		}
+		return cells.map { it.toResponse() }
+	}
+
+	fun getLacTacCoveragePolygon(mcc: Int, mnc: Int, lacTac: String): LacTacCoverageResponse {
+		validateMccMncAndLacTac(mcc, mnc, lacTac)
+		val cells = cellRepository.findCellsByLacTac(mcc, mnc, lacTac.trim())
+		if (cells.isEmpty()) {
+			throw ResourceNotFoundException("No cells found for MCC $mcc, MNC $mnc and LAC/TAC '$lacTac'")
+		}
+		val polygonGeoJson = cellRepository.findLacTacCoveragePolygon(mcc, mnc, lacTac.trim())
+			?: throw ResourceNotFoundException("No coverage polygon could be built for MCC $mcc, MNC $mnc and LAC/TAC '$lacTac'")
+		return LacTacCoverageResponse(
+			mcc = mcc,
+			mnc = mnc,
+			lacTac = lacTac.trim(),
+			polygonGeoJson = polygonGeoJson
+		)
+	}
+
 	fun getNearbyCells(
 		cgi: String,
 		radiusKm: Double,
@@ -174,6 +200,7 @@ class CellService(
 			longitude = longitude,
 			radiusMeters = radiusKm * 1000.0,
 			mnc = mncFilter,
+			band = null,
 			technologies = technologies
 		)
 		val centralCell = nearby.firstOrNull { it.id == center.id } ?: center
@@ -190,6 +217,7 @@ class CellService(
 		longitude: Double,
 		radiusKm: Double,
 		mnc: Int?,
+		band: String?,
 		techGenerations: List<String>?
 	): CellsInCircleResponse {
 		if (radiusKm <= 0.0) {
@@ -201,6 +229,7 @@ class CellService(
 			longitude = longitude,
 			radiusMeters = radiusKm * 1000.0,
 			mnc = mnc,
+			band = band?.trim()?.ifBlank { null },
 			technologies = technologies
 		)
 		return CellsInCircleResponse(
@@ -217,6 +246,7 @@ class CellService(
 		lat2: Double,
 		lon2: Double,
 		mnc: Int?,
+		band: String?,
 		techGenerations: List<String>?
 	): CellsInBboxResponse {
 		if (lat1 == lat2 && lon1 == lon2) {
@@ -229,6 +259,7 @@ class CellService(
 			lat2 = lat2,
 			lon2 = lon2,
 			mnc = mnc,
+			band = band?.trim()?.ifBlank { null },
 			technologies = technologies
 		)
 		return CellsInBboxResponse(
@@ -724,6 +755,18 @@ class CellService(
 			}
 			.toSet()
 		return parsed.ifEmpty { null }
+	}
+
+	private fun validateMccMncAndLacTac(mcc: Int, mnc: Int, lacTac: String) {
+		if (mcc !in 100..999) {
+			throw ValidationException("mcc must be between 100 and 999")
+		}
+		if (mnc !in 0..999) {
+			throw ValidationException("mnc must be between 0 and 999")
+		}
+		if (lacTac.trim().isBlank()) {
+			throw ValidationException("lacTac query parameter is required")
+		}
 	}
 
 	private fun CellDetailsRecord.toResponse(

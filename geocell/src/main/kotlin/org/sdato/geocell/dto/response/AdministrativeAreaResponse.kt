@@ -19,3 +19,10 @@ data class CellsByAdministrativeAreaResponse(
 	val caopPolygonGeoJson: String?,
 	val cells: List<CellResponse>
 )
+
+data class LacTacCoverageResponse(
+	val mcc: Int,
+	val mnc: Int,
+	val lacTac: String,
+	val polygonGeoJson: String?
+)

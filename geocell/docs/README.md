@@ -255,6 +255,8 @@ A especificação completa está em [`openapi.yaml`](./openapi.yaml).
 | GET    | `/search/circle`       | Células num círculo por coordenadas + raio                 | ✅   |
 | GET    | `/search/bbox`         | Células num rectângulo definido por dois pontos            | ✅   |
 | GET    | `/search/county`       | Células por distrito/concelho + filtros de rede/tecnologia | ✅   |
+| GET    | `/search/lac-tac`      | Células por MCC/MNC/LAC-TAC                                | ✅   |
+| GET    | `/search/lac-tac/polygon` | Polygon de cobertura por MCC/MNC/LAC-TAC               | ✅   |
 
 #### `GET /api/cells/districts`
 
@@ -299,6 +301,7 @@ Pesquisa células dentro de um **círculo** definido por coordenadas centrais e 
 | `lon`           | double   | ✅     | Longitude do centro                |
 | `radiusKm`      | double   | ✅     | Raio em km (> 0)                   |
 | `mnc`           | integer  | ❌     | Filtrar por MNC                    |
+| `band`          | string   | ❌     | Filtrar por banda                  |
 | `techGeneration`| string[] | ❌     | `2G`, `3G`, `4G`, `5G`, `NB-IoT`  |
 
 **Resposta:** `CellsInCircleResponse { centerLatitude, centerLongitude, radiusKm, cells[] }`  
@@ -320,6 +323,7 @@ Pesquisa células dentro do **rectângulo delimitador** (bounding box) formado p
 | `lat1`, `lon1`  | double   | ✅     | Coordenadas do primeiro canto       |
 | `lat2`, `lon2`  | double   | ✅     | Coordenadas do segundo canto        |
 | `mnc`           | integer  | ❌     | Filtrar por MNC                     |
+| `band`          | string   | ❌     | Filtrar por banda                   |
 | `techGeneration`| string[] | ❌     | `2G`, `3G`, `4G`, `5G`, `NB-IoT`   |
 
 **Resposta:** `CellsInBboxResponse { corner1Latitude, corner1Longitude, corner2Latitude, corner2Longitude, cells[] }`
@@ -344,6 +348,30 @@ Pesquisa células pelos concelhos de um distrito inteiro, ou por um concelho esp
 **Resposta:** `CellsByAdministrativeAreaResponse { districtId, countyId, caopPolygonGeoJson, cells[] }`  
 Quando `countyId` é enviado, `caopPolygonGeoJson` vem uma única vez ao nível da resposta.
 
+#### `GET /api/cells/search/lac-tac`
+
+Pesquisa cells pelo mesmo `MCC + MNC + LAC/TAC`.
+
+| Parâmetro | Tipo    | Obrig. | Descrição |
+|-----------|---------|--------|-----------|
+| `mcc`     | integer | ✅     | MCC       |
+| `mnc`     | integer | ✅     | MNC       |
+| `lacTac`  | string  | ✅     | LAC/TAC   |
+
+**Resposta:** `CellResponse[]`
+
+#### `GET /api/cells/search/lac-tac/polygon`
+
+Calcula o polygon de cobertura a partir das localizações das cells do mesmo `MCC + MNC + LAC/TAC`.
+
+| Parâmetro | Tipo    | Obrig. | Descrição |
+|-----------|---------|--------|-----------|
+| `mcc`     | integer | ✅     | MCC       |
+| `mnc`     | integer | ✅     | MNC       |
+| `lacTac`  | string  | ✅     | LAC/TAC   |
+
+**Resposta:** `LacTacCoverageResponse { mcc, mnc, lacTac, polygonGeoJson }`
+
 ---
 
 ## 7. Services
@@ -359,6 +387,8 @@ Principal service da aplicação. Responsabilidades:
 - **`getCellsInCircle(lat, lon, radiusKm, mnc, techGenerations)`** — pesquisa geoespacial por coordenadas directas.
 - **`getCellsInBbox(lat1, lon1, lat2, lon2, mnc, techGenerations)`** — pesquisa por rectângulo delimitador.
 - **`getCellsByAdministrativeArea(districtId, countyId, mnc, techGenerations)`** — pesquisa por distrito/concelho com filtros e polígono CAOP correspondente.
+- **`getCellsByLacTac(mcc, mnc, lacTac)`** — lista cells pelo mesmo MCC/MNC/LAC-TAC.
+- **`getLacTacCoveragePolygon(mcc, mnc, lacTac)`** — calcula o polygon de cobertura por MCC/MNC/LAC-TAC.
 - **`createCell(request, principal)`** — cria/resolve `location`, `band`, `mccmnc`, `enbgnb` e a `cell`; gera polígonos.
 - **`updateCell(id, request, principal)`** — actualiza todos os sub-registos e regenera polígonos.
 - **`deleteCell(id)`** — remove a célula (cascade para `cell_polygon`).

@@ -104,6 +104,44 @@ class JdbcCellRepository(
 		)
 	}
 
+	override fun findCellsByLacTac(mcc: Int, mnc: Int, lacTac: String): List<CellDetailsRecord> =
+		jdbcTemplate.query(
+			"""
+			$baseSelect
+			WHERE m.mcc = ?
+			  AND m.mnc = ?
+			  AND c.lac_tac = ?
+			ORDER BY c.id DESC
+			""".trimIndent(),
+			{ rs, _ -> rs.toCellDetailsRecord() },
+			mcc,
+			mnc,
+			lacTac
+		)
+
+	override fun findLacTacCoveragePolygon(mcc: Int, mnc: Int, lacTac: String): String? =
+		jdbcTemplate.query(
+			"""
+			SELECT ST_AsGeoJSON(
+				ST_ConcaveHull(
+					ST_Collect(l.coordinates::geometry),
+					0.8
+				)
+			)::text AS polygon_geojson
+			FROM cell c
+			JOIN mccmnc m ON m.id = c.mcc_mnc_id
+			JOIN location l ON l.id = c.location_id
+			WHERE m.mcc = ?
+			  AND m.mnc = ?
+			  AND c.lac_tac = ?
+			  AND l.coordinates IS NOT NULL
+			""".trimIndent(),
+			{ rs, _ -> rs.getString("polygon_geojson") },
+			mcc,
+			mnc,
+			lacTac
+		).firstOrNull()
+
 	override fun findByIdentifiers(cgi: String?, paragonCgi: String?): CellDetailsRecord? {
 		if (cgi == null && paragonCgi == null) {
 			return null
@@ -134,6 +172,7 @@ class JdbcCellRepository(
 		longitude: Double,
 		radiusMeters: Double,
 		mnc: Int?,
+		band: String?,
 		technologies: Set<Int>?
 	): List<CellDetailsRecord> {
 		val sql = StringBuilder(
@@ -152,6 +191,10 @@ class JdbcCellRepository(
 		if (mnc != null) {
 			sql.append("\n  AND m.mnc = ?")
 			params.add(mnc)
+		}
+		if (!band.isNullOrBlank()) {
+			sql.append("\n  AND b.band = ?")
+			params.add(band)
 		}
 		if (!technologies.isNullOrEmpty()) {
 			sql.append("\n  AND c.technology IN (${technologies.joinToString(",") { "?" }})")
@@ -182,6 +225,7 @@ class JdbcCellRepository(
 		longitude: Double,
 		radiusMeters: Double,
 		mnc: Int?,
+		band: String?,
 		technologies: Set<Int>?
 	): List<CellDetailsRecord> {
 		val sql = StringBuilder(
@@ -200,6 +244,10 @@ class JdbcCellRepository(
 		if (mnc != null) {
 			sql.append("\n  AND m.mnc = ?")
 			params.add(mnc)
+		}
+		if (!band.isNullOrBlank()) {
+			sql.append("\n  AND b.band = ?")
+			params.add(band)
 		}
 		if (!technologies.isNullOrEmpty()) {
 			sql.append("\n  AND c.technology IN (${technologies.joinToString(",") { "?" }})")
@@ -231,6 +279,7 @@ class JdbcCellRepository(
 		lat2: Double,
 		lon2: Double,
 		mnc: Int?,
+		band: String?,
 		technologies: Set<Int>?
 	): List<CellDetailsRecord> {
 		val minLon = minOf(lon1, lon2)
@@ -253,6 +302,10 @@ class JdbcCellRepository(
 		if (mnc != null) {
 			sql.append("\n  AND m.mnc = ?")
 			params.add(mnc)
+		}
+		if (!band.isNullOrBlank()) {
+			sql.append("\n  AND b.band = ?")
+			params.add(band)
 		}
 		if (!technologies.isNullOrEmpty()) {
 			sql.append("\n  AND c.technology IN (${technologies.joinToString(",") { "?" }})")

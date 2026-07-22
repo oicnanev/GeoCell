@@ -18,12 +18,15 @@ interface CellRepository {
 		mnc: Int?,
 		technologies: Set<Int>?
 	): List<CellDetailsRecord>
+	fun findCellsByLacTac(mcc: Int, mnc: Int, lacTac: String): List<CellDetailsRecord>
+	fun findLacTacCoveragePolygon(mcc: Int, mnc: Int, lacTac: String): String?
 	fun findByIdentifiers(cgi: String?, paragonCgi: String?): CellDetailsRecord?
 	fun findNearbyCells(
 		latitude: Double,
 		longitude: Double,
 		radiusMeters: Double,
 		mnc: Int?,
+		band: String?,
 		technologies: Set<Int>?
 	): List<CellDetailsRecord>
 	fun findCellsInCircle(
@@ -31,6 +34,7 @@ interface CellRepository {
 		longitude: Double,
 		radiusMeters: Double,
 		mnc: Int?,
+		band: String?,
 		technologies: Set<Int>?
 	): List<CellDetailsRecord>
 	fun findCellsInBbox(
@@ -39,6 +43,7 @@ interface CellRepository {
 		lat2: Double,
 		lon2: Double,
 		mnc: Int?,
+		band: String?,
 		technologies: Set<Int>?
 	): List<CellDetailsRecord>
 	fun findById(id: Long): CellDetailsRecord?

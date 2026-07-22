@@ -10,6 +10,7 @@ import org.sdato.geocell.dto.response.CellsInBboxResponse
 import org.sdato.geocell.dto.response.CellResponse
 import org.sdato.geocell.dto.response.CountyResponse
 import org.sdato.geocell.dto.response.DistrictResponse
+import org.sdato.geocell.dto.response.LacTacCoverageResponse
 import org.sdato.geocell.exception.InvalidCredentialsException
 import org.sdato.geocell.service.cell.CellService
 import org.springframework.context.annotation.Profile
@@ -62,9 +63,10 @@ class CellController(
 		@RequestParam lon: Double,
 		@RequestParam radiusKm: Double,
 		@RequestParam(required = false) mnc: Int?,
+		@RequestParam(required = false) band: String?,
 		@RequestParam(required = false) techGeneration: List<String>?
 	): CellsInCircleResponse =
-		cellService.getCellsInCircle(lat, lon, radiusKm, mnc, techGeneration)
+		cellService.getCellsInCircle(lat, lon, radiusKm, mnc, band, techGeneration)
 
 	@GetMapping("/search/bbox")
 	fun getCellsInBbox(
@@ -73,9 +75,10 @@ class CellController(
 		@RequestParam lat2: Double,
 		@RequestParam lon2: Double,
 		@RequestParam(required = false) mnc: Int?,
+		@RequestParam(required = false) band: String?,
 		@RequestParam(required = false) techGeneration: List<String>?
 	): CellsInBboxResponse =
-		cellService.getCellsInBbox(lat1, lon1, lat2, lon2, mnc, techGeneration)
+		cellService.getCellsInBbox(lat1, lon1, lat2, lon2, mnc, band, techGeneration)
 
 	@GetMapping("/search/county")
 	fun getCellsByAdministrativeArea(
@@ -85,6 +88,22 @@ class CellController(
 		@RequestParam(required = false) techGeneration: List<String>?
 	): CellsByAdministrativeAreaResponse =
 		cellService.getCellsByAdministrativeArea(districtId, countyId, mnc, techGeneration)
+
+	@GetMapping("/search/lac-tac")
+	fun getCellsByLacTac(
+		@RequestParam mcc: Int,
+		@RequestParam mnc: Int,
+		@RequestParam lacTac: String
+	): List<CellResponse> =
+		cellService.getCellsByLacTac(mcc, mnc, lacTac)
+
+	@GetMapping("/search/lac-tac/polygon")
+	fun getLacTacCoveragePolygon(
+		@RequestParam mcc: Int,
+		@RequestParam mnc: Int,
+		@RequestParam lacTac: String
+	): LacTacCoverageResponse =
+		cellService.getLacTacCoveragePolygon(mcc, mnc, lacTac)
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)

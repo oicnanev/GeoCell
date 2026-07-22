@@ -374,7 +374,7 @@ paths:
       summary: Pesquisar cells num círculo por coordenadas
       description: |
         Devolve todas as cells dentro de um círculo definido pelas coordenadas centrais e raio,
-        com filtros opcionais por rede (MNC) e geração tecnológica.
+        com filtros opcionais por rede (MNC), banda e geração tecnológica.
         As cells são ordenadas por distância ao centro.
       security:
         - SessionCookieAuth: []
@@ -408,6 +408,12 @@ paths:
           description: Filtrar por MNC (código de rede). Quando omitido, devolve todas as redes.
           schema:
             type: integer
+        - name: band
+          in: query
+          required: false
+          description: Filtrar por banda (valor do campo `band.band`).
+          schema:
+            type: string
         - name: techGeneration
           in: query
           required: false
@@ -438,7 +444,7 @@ paths:
       description: |
         Devolve todas as cells dentro do rectângulo (bounding box) definido por dois pontos
         (cantos opostos). A ordem dos cantos é indiferente — o sistema calcula automaticamente
-        o envelope mínimo. Filtros opcionais por rede (MNC) e geração tecnológica.
+        o envelope mínimo. Filtros opcionais por rede (MNC), banda e geração tecnológica.
       security:
         - SessionCookieAuth: []
       parameters:
@@ -476,6 +482,12 @@ paths:
           description: Filtrar por MNC (código de rede). Quando omitido, devolve todas as redes.
           schema:
             type: integer
+        - name: band
+          in: query
+          required: false
+          description: Filtrar por banda (valor do campo `band.band`).
+          schema:
+            type: string
         - name: techGeneration
           in: query
           required: false
@@ -545,6 +557,82 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CellsByAdministrativeAreaResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/cells/search/lac-tac:
+    get:
+      tags: [Cells]
+      summary: Pesquisar cells por MCC/MNC/LAC-TAC
+      description: Devolve todas as cells que partilham o mesmo MCC, MNC e LAC/TAC.
+      security:
+        - SessionCookieAuth: []
+      parameters:
+        - name: mcc
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: mnc
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: lacTac
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cells encontradas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CellResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/cells/search/lac-tac/polygon:
+    get:
+      tags: [Cells]
+      summary: Obter polygon de cobertura por MCC/MNC/LAC-TAC
+      description: Calcula um concave hull a partir das localizações das cells do mesmo MCC, MNC e LAC/TAC.
+      security:
+        - SessionCookieAuth: []
+      parameters:
+        - name: mcc
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: mnc
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: lacTac
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Polygon calculado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LacTacCoverageResponse'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -1224,6 +1312,23 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CellResponse'
+
+    LacTacCoverageResponse:
+      type: object
+      required:
+        - mcc
+        - mnc
+        - lacTac
+      properties:
+        mcc:
+          type: integer
+        mnc:
+          type: integer
+        lacTac:
+          type: string
+        polygonGeoJson:
+          type: string
+          nullable: true
 
     CellCsvImportResponse:
       type: object
