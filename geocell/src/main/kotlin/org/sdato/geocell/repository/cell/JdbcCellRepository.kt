@@ -15,7 +15,9 @@ import org.springframework.context.annotation.Profile
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import java.sql.ResultSet
+import java.sql.Statement
 import java.time.OffsetDateTime
+import org.springframework.jdbc.support.GeneratedKeyHolder
 
 @Repository
 @Profile("!test")
@@ -428,13 +430,11 @@ class JdbcCellRepository(
 		).firstOrNull()
 
 	override fun insertLocation(record: CellLocationWriteRecord): Long =
-		jdbcTemplate.queryForObject(
+		insertReturningId(
 			"""
 			INSERT INTO location (coordinates, address, address1, zip4, zip3, postal_designation, id_county_id)
 			VALUES (ST_SetSRID(ST_MakePoint(?, ?), 4326), ?, ?, ?, ?, ?, ?)
-			RETURNING id
 			""".trimIndent(),
-			Long::class.java,
 			record.longitude,
 			record.latitude,
 			record.address,
@@ -443,7 +443,7 @@ class JdbcCellRepository(
 			record.zip3,
 			record.postalDesignation,
 			record.countyId
-		) ?: throw IllegalStateException("Failed to create location")
+		)
 
 	override fun updateLocation(id: Long, record: CellLocationWriteRecord) {
 		jdbcTemplate.update(
@@ -471,19 +471,17 @@ class JdbcCellRepository(
 	}
 
 	override fun insertBand(record: CellBandWriteRecord): Long =
-		jdbcTemplate.queryForObject(
+		insertReturningId(
 			"""
 			INSERT INTO band (band, bandwidth, uplink_freq, downlink_freq, earfcn)
 			VALUES (?, ?, ?, ?, ?)
-			RETURNING id
 			""".trimIndent(),
-			Long::class.java,
 			record.band,
 			record.bandwidth,
 			record.uplinkFreq,
 			record.downlinkFreq,
 			record.earfcn
-		) ?: throw IllegalStateException("Failed to create band")
+		)
 
 	override fun updateBand(id: Long, record: CellBandWriteRecord) {
 		jdbcTemplate.update(
@@ -502,44 +500,60 @@ class JdbcCellRepository(
 	}
 
 	override fun upsertMccMnc(record: CellMccMncWriteRecord): Long =
-		jdbcTemplate.queryForObject(
-			"""
-			INSERT INTO mccmnc (type, mcc, mnc, brand, "operator", status, bands, notes, country_id)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-			ON CONFLICT (mcc, mnc)
-			DO UPDATE SET
-				type = EXCLUDED.type,
-				brand = EXCLUDED.brand,
-				"operator" = EXCLUDED."operator",
-				status = EXCLUDED.status,
-				bands = EXCLUDED.bands,
-				notes = EXCLUDED.notes,
-				country_id = EXCLUDED.country_id
-			RETURNING id
-			""".trimIndent(),
-			Long::class.java,
-			record.type,
-			record.mcc,
-			record.mnc,
-			record.brand,
-			record.operatorName,
-			record.status,
-			record.bands,
-			record.notes,
-			record.countryId
-		) ?: throw IllegalStateException("Failed to upsert mccmnc")
+		run {
+			val updated = jdbcTemplate.update(
+				"""
+				UPDATE mccmnc
+				SET type = ?,
+				    brand = ?,
+				    "operator" = ?,
+				    status = ?,
+				    bands = ?,
+				    notes = ?,
+				    country_id = ?
+				WHERE mcc = ? AND mnc = ?
+				""".trimIndent(),
+				record.type,
+				record.brand,
+				record.operatorName,
+				record.status,
+				record.bands,
+				record.notes,
+				record.countryId,
+				record.mcc,
+				record.mnc
+			)
+			if (updated > 0) {
+				findMccMncId(record.mcc, record.mnc)
+					?: throw IllegalStateException("Failed to load updated mccmnc")
+			} else {
+				insertReturningId(
+					"""
+					INSERT INTO mccmnc (type, mcc, mnc, brand, "operator", status, bands, notes, country_id)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+					""".trimIndent(),
+					record.type,
+					record.mcc,
+					record.mnc,
+					record.brand,
+					record.operatorName,
+					record.status,
+					record.bands,
+					record.notes,
+					record.countryId
+				)
+			}
+		}
 
 	override fun insertEnbGnb(enbGnb: Int, locationId: Long): Long =
-		jdbcTemplate.queryForObject(
+		insertReturningId(
 			"""
 			INSERT INTO enbgnb (enb_gnb, location_id)
 			VALUES (?, ?)
-			RETURNING id
 			""".trimIndent(),
-			Long::class.java,
 			enbGnb,
 			locationId
-		) ?: throw IllegalStateException("Failed to create enbgnb")
+		)
 
 	override fun updateEnbGnb(id: Long, enbGnb: Int, locationId: Long) {
 		jdbcTemplate.update(
@@ -551,16 +565,14 @@ class JdbcCellRepository(
 	}
 
 	override fun insertCell(record: CellWriteRecord): Long =
-		jdbcTemplate.queryForObject(
+		insertReturningId(
 			"""
 			INSERT INTO cell (
 				lac_tac, ci, eci_nci, cgi, paragon_cgi, technology, azimuth, name,
 				band_id, enb_gnb_id, location_id, mcc_mnc_id, updated_by, created_by, created_at, updated_at
 			)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))
-			RETURNING id
 			""".trimIndent(),
-			Long::class.java,
 			record.lacTac,
 			record.ci,
 			record.eciNci,
@@ -577,7 +589,7 @@ class JdbcCellRepository(
 			record.createdBy,
 			record.createdAt,
 			record.updatedAt
-		) ?: throw IllegalStateException("Failed to create cell")
+		)
 
 	override fun updateCell(id: Long, record: CellWriteRecord): Int =
 		jdbcTemplate.update(
@@ -819,7 +831,14 @@ class JdbcCellRepository(
 				b.earfcn,
 				ST_AsGeoJSON(cp.polygon)::text AS polygon_geojson,
 				ST_AsGeoJSON(cp.polygon_short)::text AS polygon_short_geojson,
-				caop.caop_polygon_geojson
+				(
+					SELECT ST_AsGeoJSON(ca.wkb_geometry)::text
+					FROM caop_23p ca
+					WHERE l.coordinates IS NOT NULL
+					  AND ST_Intersects(ca.wkb_geometry, l.coordinates)
+					ORDER BY ca.area_ha DESC
+					LIMIT 1
+				) AS caop_polygon_geojson
 			FROM cell c
 			LEFT JOIN location l ON l.id = c.location_id
 			LEFT JOIN county cty ON cty.id = l.id_county_id
@@ -827,14 +846,17 @@ class JdbcCellRepository(
 			LEFT JOIN mccmnc m ON m.id = c.mcc_mnc_id
 			LEFT JOIN band b ON b.id = c.band_id
 			LEFT JOIN cell_polygon cp ON cp.cell_id = c.id
-			LEFT JOIN LATERAL (
-				SELECT ST_AsGeoJSON(ca.wkb_geometry)::text AS caop_polygon_geojson
-				FROM caop_23p ca
-				WHERE l.coordinates IS NOT NULL
-				  AND ST_Intersects(ca.wkb_geometry, l.coordinates)
-				ORDER BY ca.area_ha DESC
-				LIMIT 1
-			) caop ON TRUE
 		"""
+	}
+
+	private fun insertReturningId(sql: String, vararg params: Any?): Long {
+		val keyHolder = GeneratedKeyHolder()
+		jdbcTemplate.update({ connection ->
+			connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS).apply {
+				params.forEachIndexed { index, value -> setObject(index + 1, value) }
+			}
+		}, keyHolder)
+		val id = keyHolder.keys?.get("id") as? Number ?: keyHolder.key as? Number
+		return id?.toLong() ?: throw IllegalStateException("Failed to generate id for insert")
 	}
 }
