@@ -2,7 +2,9 @@ package org.sdato.geocell.service.user
 
 import org.sdato.geocell.domain.auth.AuthUserPrincipal
 import org.sdato.geocell.domain.user.CreateUserRecord
+import org.sdato.geocell.domain.user.UpdateUserRecord
 import org.sdato.geocell.dto.request.CreateUserRequest
+import org.sdato.geocell.dto.request.UpdateUserRequest
 import org.sdato.geocell.dto.response.CreateUserResponse
 import org.sdato.geocell.exception.ForbiddenOperationException
 import org.sdato.geocell.exception.ResourceConflictException
@@ -77,21 +79,7 @@ class UserService(
 
 	fun listUsers(principal: AuthUserPrincipal): List<CreateUserResponse> {
 		assertSuperuser(principal)
-		return userRepository.findAll().map {
-			CreateUserResponse(
-				id = it.id,
-				username = it.username,
-				name = it.name,
-				email = it.email,
-				departmentId = it.departmentId,
-				isSuperuser = it.isSuperuser,
-				isAnalyst = it.isAnalyst,
-				isOperationAdmin = it.isOperationAdmin,
-				mapType = it.mapType,
-				showGrid = it.showGrid,
-				showCounties = it.showCounties
-			)
-		}
+		return userRepository.findAll().map(::toResponse)
 	}
 
 	fun getUserById(userId: Long, principal: AuthUserPrincipal): CreateUserResponse {
@@ -99,7 +87,81 @@ class UserService(
 		val user = userRepository.findById(userId)
 			?: throw ResourceNotFoundException("User with id $userId was not found")
 
+		return toResponse(user)
+	}
+
+	@Transactional
+	fun updateUser(userId: Long, request: UpdateUserRequest, principal: AuthUserPrincipal): CreateUserResponse {
+		assertSuperuser(principal)
+		createUserRequestValidator.validate(request)
+		userRepository.findById(userId)
+			?: throw ResourceNotFoundException("User with id $userId was not found")
+
+		val normalizedUsername = request.username.trim()
+		val normalizedName = request.name.trim()
+		val normalizedEmail = request.email.trim().lowercase()
+
+		if (!departmentRepository.existsById(request.departmentId)) {
+			throw ResourceNotFoundException("Department with id ${request.departmentId} was not found")
+		}
+		if (userRepository.existsByUsernameExcludingId(normalizedUsername, userId)) {
+			throw ResourceConflictException("Username '$normalizedUsername' is already in use")
+		}
+		if (userRepository.existsByEmailExcludingId(normalizedEmail, userId)) {
+			throw ResourceConflictException("Email '$normalizedEmail' is already in use")
+		}
+		val passwordHash = request.password?.let {
+			passwordEncoder.encode(it) ?: throw IllegalStateException("Password encoder returned null hash")
+		}
+
+		userRepository.updateUser(
+			userId,
+			UpdateUserRecord(
+				username = normalizedUsername,
+				passwordHash = passwordHash,
+				name = normalizedName,
+				email = normalizedEmail,
+				isSuperuser = request.isSuperuser,
+				isAnalyst = request.isAnalyst,
+				isOperationAdmin = request.isOperationAdmin,
+				mapType = request.mapType,
+				showGrid = request.showGrid,
+				showCounties = request.showCounties
+			)
+		)
+		userRepository.replaceDepartment(userId, request.departmentId)
+
 		return CreateUserResponse(
+			id = userId,
+			username = normalizedUsername,
+			name = normalizedName,
+			email = normalizedEmail,
+			departmentId = request.departmentId,
+			isSuperuser = request.isSuperuser,
+			isAnalyst = request.isAnalyst,
+			isOperationAdmin = request.isOperationAdmin,
+			mapType = request.mapType,
+			showGrid = request.showGrid,
+			showCounties = request.showCounties
+		)
+	}
+
+	@Transactional
+	fun deleteUser(userId: Long, principal: AuthUserPrincipal) {
+		assertSuperuser(principal)
+		userRepository.findById(userId)
+			?: throw ResourceNotFoundException("User with id $userId was not found")
+		userRepository.deleteUser(userId)
+	}
+
+	private fun assertSuperuser(principal: AuthUserPrincipal) {
+		if (!principal.isSuperuser) {
+			throw ForbiddenOperationException("Only superusers can manage users")
+		}
+	}
+
+	private fun toResponse(user: org.sdato.geocell.domain.user.UserRecord) =
+		CreateUserResponse(
 			id = user.id,
 			username = user.username,
 			name = user.name,
@@ -112,11 +174,4 @@ class UserService(
 			showGrid = user.showGrid,
 			showCounties = user.showCounties
 		)
-	}
-
-	private fun assertSuperuser(principal: AuthUserPrincipal) {
-		if (!principal.isSuperuser) {
-			throw ForbiddenOperationException("Only superusers can manage users")
-		}
-	}
 }

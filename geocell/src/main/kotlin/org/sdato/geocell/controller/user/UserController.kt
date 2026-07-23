@@ -2,15 +2,18 @@ package org.sdato.geocell.controller.user
 
 import org.sdato.geocell.domain.auth.AuthUserPrincipal
 import org.sdato.geocell.dto.request.CreateUserRequest
+import org.sdato.geocell.dto.request.UpdateUserRequest
 import org.sdato.geocell.dto.response.CreateUserResponse
 import org.sdato.geocell.exception.InvalidCredentialsException
 import org.sdato.geocell.service.user.UserService
 import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpStatus
 import org.springframework.security.core.Authentication
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
@@ -40,6 +43,23 @@ class UserController(
 		authentication: Authentication
 	): CreateUserResponse =
 		userService.getUserById(id, requirePrincipal(authentication))
+
+	@PutMapping("/{id}")
+	fun updateUser(
+		@PathVariable id: Long,
+		@RequestBody request: UpdateUserRequest,
+		authentication: Authentication
+	): CreateUserResponse =
+		userService.updateUser(id, request, requirePrincipal(authentication))
+
+	@DeleteMapping("/{id}")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	fun deleteUser(
+		@PathVariable id: Long,
+		authentication: Authentication
+	) {
+		userService.deleteUser(id, requirePrincipal(authentication))
+	}
 
 	private fun requirePrincipal(authentication: Authentication): AuthUserPrincipal =
 		authentication.principal as? AuthUserPrincipal ?: throw InvalidCredentialsException()

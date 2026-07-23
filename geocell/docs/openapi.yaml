@@ -124,6 +124,69 @@ paths:
         '409':
           $ref: '#/components/responses/ConflictError'
 
+  /api/departments/{id}:
+    put:
+      tags: [Departments]
+      summary: Atualizar departamento
+      description: Requer utilizador autenticado com perfil superuser.
+      security:
+        - SessionCookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDepartmentRequest'
+      responses:
+        '200':
+          description: Departamento atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+    delete:
+      tags: [Departments]
+      summary: Remover departamento
+      description: Requer utilizador autenticado com perfil superuser. Falha com conflito se existirem users atribuídos ou operations ligadas ao departamento.
+      security:
+        - SessionCookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Departamento removido
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
   /api/users:
     get:
       tags: [Users]
@@ -196,6 +259,64 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    put:
+      tags: [Users]
+      summary: Atualizar utilizador por ID
+      description: Requer utilizador autenticado com perfil superuser. O campo `password` é opcional; quando omitido, a password atual mantém-se.
+      security:
+        - SessionCookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Utilizador atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+    delete:
+      tags: [Users]
+      summary: Remover utilizador por ID
+      description: Requer utilizador autenticado com perfil superuser.
+      security:
+        - SessionCookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Utilizador removido
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -845,6 +966,18 @@ components:
         haveOperations:
           type: boolean
 
+    UpdateDepartmentRequest:
+      type: object
+      required:
+        - name
+        - haveOperations
+      properties:
+        name:
+          type: string
+          maxLength: 150
+        haveOperations:
+          type: boolean
+
     DepartmentResponse:
       type: object
       required:
@@ -875,6 +1008,51 @@ components:
         password:
           type: string
           maxLength: 128
+        name:
+          type: string
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        departmentId:
+          type: integer
+          format: int64
+        isSuperuser:
+          type: boolean
+          default: false
+        isAnalyst:
+          type: boolean
+          default: false
+        isOperationAdmin:
+          type: boolean
+          default: false
+        mapType:
+          type: string
+          enum: [standard, satellite, hybrid, terrain]
+          default: standard
+        showGrid:
+          type: boolean
+          default: false
+        showCounties:
+          type: boolean
+          default: false
+
+    UpdateUserRequest:
+      type: object
+      required:
+        - username
+        - name
+        - email
+        - departmentId
+      properties:
+        username:
+          type: string
+          maxLength: 150
+        password:
+          type: string
+          maxLength: 128
+          nullable: true
         name:
           type: string
           maxLength: 150

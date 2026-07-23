@@ -231,6 +231,8 @@ A especificação completa está em [`openapi.yaml`](./openapi.yaml).
 |--------|---------|---------------------|-------------------|
 | GET    | `/`     | Listar departamentos | superuser         |
 | POST   | `/`     | Criar departamento   | superuser         |
+| PUT    | `/{id}` | Actualizar departamento | superuser      |
+| DELETE | `/{id}` | Remover departamento sem users nem operations associadas | superuser |
 
 ### Users — `/api/users`
 
@@ -239,6 +241,14 @@ A especificação completa está em [`openapi.yaml`](./openapi.yaml).
 | GET    | `/`      | Listar utilizadores  | superuser         |
 | POST   | `/`      | Criar utilizador     | superuser         |
 | GET    | `/{id}`  | Obter utilizador     | superuser         |
+| PUT    | `/{id}`  | Actualizar utilizador | superuser        |
+| DELETE | `/{id}`  | Remover utilizador    | superuser        |
+
+#### Regras adicionais de administração
+
+- `PUT /api/users/{id}` aceita `password` opcional; se omitida, a password actual é mantida.
+- `DELETE /api/users/{id}` remove o utilizador e limpa referências administrativas e sessões associadas antes do apagamento final.
+- `DELETE /api/departments/{id}` devolve conflito (`409`) se existirem utilizadores atribuídos ao departamento ou operações ligadas ao mesmo.
 
 ### Cells — `/api/cells`
 

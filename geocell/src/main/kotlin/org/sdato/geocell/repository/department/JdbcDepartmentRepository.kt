@@ -18,6 +18,14 @@ class JdbcDepartmentRepository(
 			name
 		) ?: false
 
+	override fun existsByNameExcludingId(name: String, departmentId: Long): Boolean =
+		jdbcTemplate.queryForObject(
+			"SELECT EXISTS(SELECT 1 FROM department WHERE lower(name) = lower(?) AND id <> ?)",
+			Boolean::class.java,
+			name,
+			departmentId
+		) ?: false
+
 	override fun existsById(id: Long): Boolean =
 		jdbcTemplate.queryForObject(
 			"SELECT EXISTS(SELECT 1 FROM department WHERE id = ?)",
@@ -32,6 +40,48 @@ class JdbcDepartmentRepository(
 			name,
 			haveOperations
 		) ?: throw IllegalStateException("Failed to create department")
+
+	override fun findById(id: Long): DepartmentRecord? =
+		jdbcTemplate.query(
+			"""
+			SELECT id, name, have_operations
+			FROM department
+			WHERE id = ?
+			""".trimIndent(),
+			{ rs, _ ->
+				DepartmentRecord(
+					id = rs.getLong("id"),
+					name = rs.getString("name"),
+					haveOperations = rs.getBoolean("have_operations")
+				)
+			},
+			id
+		).firstOrNull()
+
+	override fun updateDepartment(id: Long, name: String, haveOperations: Boolean): Boolean =
+		jdbcTemplate.update(
+			"UPDATE department SET name = ?, have_operations = ? WHERE id = ?",
+			name,
+			haveOperations,
+			id
+		) > 0
+
+	override fun countUsersByDepartmentId(id: Long): Long =
+		jdbcTemplate.queryForObject(
+			"SELECT COUNT(*) FROM user_department WHERE department_id = ?",
+			Long::class.java,
+			id
+		) ?: 0L
+
+	override fun countOperationsByDepartmentId(id: Long): Long =
+		jdbcTemplate.queryForObject(
+			"SELECT COUNT(*) FROM operation WHERE department_id = ?",
+			Long::class.java,
+			id
+		) ?: 0L
+
+	override fun deleteDepartment(id: Long): Boolean =
+		jdbcTemplate.update("DELETE FROM department WHERE id = ?", id) > 0
 
 	override fun findAll(): List<DepartmentRecord> =
 		jdbcTemplate.query(
