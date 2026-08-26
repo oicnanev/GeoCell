@@ -353,7 +353,14 @@ class CellService(
 						updatedAt = rowTimestamp
 					)
 				)
-				upsertPolygons(cellId, row.latitude, row.longitude, row.azimuth, row.technology)
+				upsertPolygons(
+					cellId = cellId,
+					latitude = row.latitude,
+					longitude = row.longitude,
+					direction = row.azimuth,
+					technology = row.technology,
+					customPolygon = row.customPolygon
+				)
 				inserted += 1
 				polygonsUpserted += 1
 				return@forEach
@@ -379,10 +386,15 @@ class CellService(
 				)
 			)
 
-			if (existing.azimuth != row.azimuth) {
-				upsertPolygons(existing.id, row.latitude, row.longitude, row.azimuth, row.technology)
-				polygonsUpserted += 1
-			}
+			upsertPolygons(
+				cellId = existing.id,
+				latitude = row.latitude,
+				longitude = row.longitude,
+				direction = row.azimuth,
+				technology = row.technology,
+				customPolygon = row.customPolygon
+			)
+			polygonsUpserted += 1
 			updated += 1
 		}
 
@@ -558,9 +570,37 @@ class CellService(
 		}
 	}
 
-	private fun upsertPolygons(cellId: Long, latitude: Double, longitude: Double, direction: Int, technology: Int) {
-		val polygonWkt = cellPolygonGenerator.buildDefaultPolygonWkt(latitude, longitude, direction)
-		val polygonShortWkt = cellPolygonGenerator.buildShortPolygonWkt(latitude, longitude, direction, technology)
+	private fun upsertPolygons(
+		cellId: Long,
+		latitude: Double,
+		longitude: Double,
+		direction: Int,
+		technology: Int,
+		customPolygon: CsvPolygonDefinition? = null
+	) {
+		val polygonWkt = if (customPolygon == null) {
+			cellPolygonGenerator.buildDefaultPolygonWkt(latitude, longitude, direction)
+		} else {
+			cellPolygonGenerator.buildDefaultPolygonWkt(
+				latitude = latitude,
+				longitude = longitude,
+				direction = direction,
+				radius = customPolygon.radius,
+				amplitude = customPolygon.opening
+			)
+		}
+		val polygonShortWkt = if (customPolygon == null) {
+			cellPolygonGenerator.buildShortPolygonWkt(latitude, longitude, direction, technology)
+		} else {
+			cellPolygonGenerator.buildShortPolygonWkt(
+				latitude = latitude,
+				longitude = longitude,
+				direction = direction,
+				technology = technology,
+				radius = customPolygon.radius,
+				amplitude = customPolygon.opening
+			)
+		}
 		cellRepository.upsertCellPolygon(cellId, polygonWkt, polygonShortWkt)
 	}
 
@@ -619,6 +659,7 @@ class CellService(
 			rawParagonCgi = optionalValue(headers, "PARAGON_ID"),
 			rowNumber = rowNumber
 		)
+		val customPolygon = parseCustomPolygon(headers, rowNumber)
 		val countyId = resolveCountyId(optionalValue(headers, "CONCELHO_CD"))
 
 		return CsvCellRow(
@@ -642,7 +683,34 @@ class CellService(
 			postalDesignation = optionalValue(headers, "DESIGNACAO_POSTAL"),
 			date = requiredDate(headers, rowNumber, "DATA"),
 			enbGnb = optionalInt(headers, "ENB_GNB", rowNumber) ?: 0,
-			countyId = countyId
+			countyId = countyId,
+			customPolygon = customPolygon
+		)
+	}
+
+	private fun CSVRecord.parseCustomPolygon(headers: Map<String, String>, rowNumber: Int): CsvPolygonDefinition? {
+		val hasOpening = hasHeader(headers, "OPENING")
+		val hasRadius = hasHeader(headers, "RADIUS")
+		if (!hasOpening && !hasRadius) {
+			return null
+		}
+		if (!hasOpening || !hasRadius) {
+			throw ValidationException("CSV must include both OPENING and RADIUS columns together")
+		}
+
+		val opening = requiredDouble(headers, "OPENING", rowNumber)
+		if (opening <= 0.0 || opening > 360.0) {
+			throw ValidationException("Row $rowNumber: OPENING must be greater than 0 and less than or equal to 360")
+		}
+
+		val radius = requiredDouble(headers, "RADIUS", rowNumber)
+		if (radius <= 0.0) {
+			throw ValidationException("Row $rowNumber: RADIUS must be greater than 0")
+		}
+
+		return CsvPolygonDefinition(
+			opening = opening,
+			radius = radius
 		)
 	}
 
@@ -699,6 +767,9 @@ class CellService(
 		val value = get(key)?.trim().orEmpty()
 		return value.ifBlank { null }
 	}
+
+	private fun hasHeader(headers: Map<String, String>, name: String): Boolean =
+		headers.containsKey(normalizeHeader(name))
 
 	private fun CSVRecord.requiredInt(headers: Map<String, String>, name: String, rowNumber: Int): Int {
 		val value = requiredValue(headers, name, rowNumber)
@@ -866,7 +937,13 @@ class CellService(
 		val postalDesignation: String?,
 		val date: LocalDate,
 		val enbGnb: Int,
-		val countyId: Long?
+		val countyId: Long?,
+		val customPolygon: CsvPolygonDefinition?
+	)
+
+	private data class CsvPolygonDefinition(
+		val opening: Double,
+		val radius: Double
 	)
 
 	companion object {

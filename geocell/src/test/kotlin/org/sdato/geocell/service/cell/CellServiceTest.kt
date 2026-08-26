@@ -150,4 +150,51 @@ class CellServiceTest {
 		assertEquals(1, result.polygonsUpserted)
 		assertNotNull(env.repository.findByCgi("269-11-22222").firstOrNull())
 	}
+
+	@Test
+	fun `import csv uses opening and radius when provided`() {
+		val csv = """
+			CGI_ECGI_NCGI;MCC;MNC;TECNOLOGIA;AZIMUTE;LATITUDE;LONGITUDE;BANDA;NOME;MORADA;MORADA1;CP4;CP3;DESIGNACAO_POSTAL;DATA;ENB_GNB;CONCELHO_CD;OPENING;RADIUS
+			269-11-33333;269;11;4;45;38.76;-9.18;1800;Imported circle;Rua X;;2001;201;Lisboa;2026-07-22;3002;1101;360;100
+		""".trimIndent()
+		val file = MockMultipartFile("file", "cells.csv", "text/csv", csv.toByteArray())
+
+		env.service.importCellsCsv(file, principal)
+
+		val imported = env.repository.findByCgi("269-11-33333").firstOrNull()
+		assertNotNull(imported)
+		val centerCoordinate = "[-9.18,38.76]"
+		assertTrue(imported.polygonGeoJson?.contains(centerCoordinate) == false)
+		assertTrue(imported.polygonShortGeoJson?.contains(centerCoordinate) == false)
+	}
+
+	@Test
+	fun `import csv updates polygons even when only custom geometry changes`() {
+		val initialCsv = """
+			CGI_ECGI_NCGI;MCC;MNC;TECNOLOGIA;AZIMUTE;LATITUDE;LONGITUDE;BANDA;NOME;MORADA;MORADA1;CP4;CP3;DESIGNACAO_POSTAL;DATA;ENB_GNB;CONCELHO_CD
+			269-11-44444;269;11;4;45;38.76;-9.18;1800;Imported default;Rua X;;2001;201;Lisboa;2026-07-22;3003;1101
+		""".trimIndent()
+		env.service.importCellsCsv(
+			MockMultipartFile("file", "cells.csv", "text/csv", initialCsv.toByteArray()),
+			principal
+		)
+		val before = env.repository.findByCgi("269-11-44444").firstOrNull()
+		assertNotNull(before)
+
+		val updatedCsv = """
+			CGI_ECGI_NCGI;MCC;MNC;TECNOLOGIA;AZIMUTE;LATITUDE;LONGITUDE;BANDA;NOME;MORADA;MORADA1;CP4;CP3;DESIGNACAO_POSTAL;DATA;ENB_GNB;CONCELHO_CD;OPENING;RADIUS
+			269-11-44444;269;11;4;45;38.76;-9.18;1800;Imported default;Rua X;;2001;201;Lisboa;2026-07-23;3003;1101;360;100
+		""".trimIndent()
+
+		val result = env.service.importCellsCsv(
+			MockMultipartFile("file", "cells.csv", "text/csv", updatedCsv.toByteArray()),
+			principal
+		)
+		val after = env.repository.findByCgi("269-11-44444").firstOrNull()
+
+		assertEquals(1, result.updated)
+		assertEquals(1, result.polygonsUpserted)
+		assertNotNull(after)
+		assertTrue(before.polygonGeoJson != after.polygonGeoJson)
+	}
 }

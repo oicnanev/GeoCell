@@ -11,27 +11,40 @@ import kotlin.math.sin
 @Component
 class CellPolygonGenerator {
 
-	fun buildDefaultPolygonWkt(latitude: Double, longitude: Double, direction: Int): String {
-		val points = calculatePolygon(latitude, longitude, direction, radius = 500.0, altitude = 20.0, amplitude = 110.0)
+	fun buildDefaultPolygonWkt(
+		latitude: Double,
+		longitude: Double,
+		direction: Int,
+		radius: Double = DEFAULT_RADIUS_METERS,
+		amplitude: Double = DEFAULT_AMPLITUDE_DEGREES
+	): String {
+		val points = calculatePolygon(
+			latitude = latitude,
+			longitude = longitude,
+			direction = direction,
+			radius = radius,
+			altitude = DEFAULT_ALTITUDE_METERS,
+			amplitude = amplitude
+		)
 		return toPolygonZWkt(points)
 	}
 
-	fun buildShortPolygonWkt(latitude: Double, longitude: Double, direction: Int, technology: Int): String {
-		val radius = when (technology) {
-			2 -> 300.0
-			3 -> 275.0
-			4 -> 250.0
-			5 -> 225.0
-			else -> 200.0
-		}
-		val altitude = when (technology) {
-			2 -> 20.0
-			3 -> 25.0
-			4 -> 30.0
-			5 -> 35.0
-			else -> 40.0
-		}
-		val points = calculatePolygon(latitude, longitude, direction, radius = radius, altitude = altitude, amplitude = 110.0)
+	fun buildShortPolygonWkt(
+		latitude: Double,
+		longitude: Double,
+		direction: Int,
+		technology: Int,
+		radius: Double = defaultShortRadiusMeters(technology),
+		amplitude: Double = DEFAULT_AMPLITUDE_DEGREES
+	): String {
+		val points = calculatePolygon(
+			latitude = latitude,
+			longitude = longitude,
+			direction = direction,
+			radius = radius,
+			altitude = defaultShortAltitudeMeters(technology),
+			amplitude = amplitude
+		)
 		return toPolygonZWkt(points)
 	}
 
@@ -148,9 +161,31 @@ class CellPolygonGenerator {
 
 	private fun Int.floorMod(modulus: Int): Int = ((this % modulus) + modulus) % modulus
 
+	private fun defaultShortRadiusMeters(technology: Int): Double = when (technology) {
+		2 -> 300.0
+		3 -> 275.0
+		4 -> 250.0
+		5 -> 225.0
+		else -> 200.0
+	}
+
+	private fun defaultShortAltitudeMeters(technology: Int): Double = when (technology) {
+		2 -> 20.0
+		3 -> 25.0
+		4 -> 30.0
+		5 -> 35.0
+		else -> 40.0
+	}
+
 	private data class Point3D(
 		val longitude: Double,
 		val latitude: Double,
 		val altitude: Double
 	)
+
+	companion object {
+		private const val DEFAULT_RADIUS_METERS = 500.0
+		private const val DEFAULT_ALTITUDE_METERS = 20.0
+		private const val DEFAULT_AMPLITUDE_DEGREES = 110.0
+	}
 }

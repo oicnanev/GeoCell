@@ -564,12 +564,15 @@ Colunas (case-insensitive, delimitador `,` ou `;` auto-detectado):
 | `CP3`            | ❌     | inteiro | Código postal (3 dígitos)                |
 | `DESIGNACAO_POSTAL` | ❌  | string  | Designação postal                        |
 | `CONCELHO_CD`    | ❌     | string  | Código de concelho (para lookup em BD)   |
+| `OPENING`        | ❌     | decimal | Ângulo de abertura do polygon em graus   |
+| `RADIUS`         | ❌     | decimal | Comprimento/radius do polygon em metros  |
 
 ### Comportamento de upsert
 
 - Se existir uma célula com o mesmo `cgi` ou `paragon_cgi`, é **actualizada**.
 - Caso contrário, é **inserida**.
 - Para cada célula, os polígonos `polygon` e `polygon_short` são sempre regenerados.
+- Quando o CSV inclui `OPENING` e `RADIUS`, ambos os polygons usam esses valores; se `OPENING = 360`, o polygon é gerado como círculo.
 - Os timestamps (`created_at`/`updated_at`) são preservados com base na coluna `DATA` do CSV.
 
 ### Resposta
