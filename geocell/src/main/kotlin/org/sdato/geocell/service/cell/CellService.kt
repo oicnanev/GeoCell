@@ -698,12 +698,18 @@ class CellService(
 			throw ValidationException("CSV must include both OPENING and RADIUS columns together")
 		}
 
-		val opening = requiredDouble(headers, "OPENING", rowNumber)
+		val opening = optionalDouble(headers, "OPENING", rowNumber)
+		val radius = optionalDouble(headers, "RADIUS", rowNumber)
+		if (opening == null && radius == null) {
+			return null
+		}
+		if (opening == null || radius == null) {
+			throw ValidationException("Row $rowNumber: OPENING and RADIUS must both be provided when custom polygon is used")
+		}
+
 		if (opening <= 0.0 || opening > 360.0) {
 			throw ValidationException("Row $rowNumber: OPENING must be greater than 0 and less than or equal to 360")
 		}
-
-		val radius = requiredDouble(headers, "RADIUS", rowNumber)
 		if (radius <= 0.0) {
 			throw ValidationException("Row $rowNumber: RADIUS must be greater than 0")
 		}
@@ -783,6 +789,11 @@ class CellService(
 
 	private fun CSVRecord.requiredDouble(headers: Map<String, String>, name: String, rowNumber: Int): Double {
 		val value = requiredValue(headers, name, rowNumber)
+		return value.toDoubleOrNull() ?: throw ValidationException("Row $rowNumber: $name must be a decimal number")
+	}
+
+	private fun CSVRecord.optionalDouble(headers: Map<String, String>, name: String, rowNumber: Int): Double? {
+		val value = optionalValue(headers, name) ?: return null
 		return value.toDoubleOrNull() ?: throw ValidationException("Row $rowNumber: $name must be a decimal number")
 	}
 

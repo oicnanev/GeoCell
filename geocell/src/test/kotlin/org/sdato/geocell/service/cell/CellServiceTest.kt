@@ -169,6 +169,34 @@ class CellServiceTest {
 	}
 
 	@Test
+	fun `import csv falls back to default polygons when opening and radius are blank`() {
+		val defaultCsv = """
+			CGI_ECGI_NCGI;MCC;MNC;TECNOLOGIA;AZIMUTE;LATITUDE;LONGITUDE;BANDA;NOME;MORADA;MORADA1;CP4;CP3;DESIGNACAO_POSTAL;DATA;ENB_GNB;CONCELHO_CD
+			269-11-55555;269;11;4;45;38.76;-9.18;1800;Imported default;Rua X;;2001;201;Lisboa;2026-07-22;3004;1101
+		""".trimIndent()
+		val blankCustomCsv = """
+			CGI_ECGI_NCGI;MCC;MNC;TECNOLOGIA;AZIMUTE;LATITUDE;LONGITUDE;BANDA;NOME;MORADA;MORADA1;CP4;CP3;DESIGNACAO_POSTAL;DATA;ENB_GNB;CONCELHO_CD;OPENING;RADIUS
+			269-11-66666;269;11;4;45;38.76;-9.18;1800;Imported blank custom;Rua X;;2001;201;Lisboa;2026-07-22;3005;1101;;
+		""".trimIndent()
+
+		env.service.importCellsCsv(
+			MockMultipartFile("file", "cells.csv", "text/csv", defaultCsv.toByteArray()),
+			principal
+		)
+		env.service.importCellsCsv(
+			MockMultipartFile("file", "cells.csv", "text/csv", blankCustomCsv.toByteArray()),
+			principal
+		)
+
+		val defaultCell = env.repository.findByCgi("269-11-55555").firstOrNull()
+		val blankCustomCell = env.repository.findByCgi("269-11-66666").firstOrNull()
+		assertNotNull(defaultCell)
+		assertNotNull(blankCustomCell)
+		assertEquals(defaultCell.polygonGeoJson, blankCustomCell.polygonGeoJson)
+		assertEquals(defaultCell.polygonShortGeoJson, blankCustomCell.polygonShortGeoJson)
+	}
+
+	@Test
 	fun `import csv updates polygons even when only custom geometry changes`() {
 		val initialCsv = """
 			CGI_ECGI_NCGI;MCC;MNC;TECNOLOGIA;AZIMUTE;LATITUDE;LONGITUDE;BANDA;NOME;MORADA;MORADA1;CP4;CP3;DESIGNACAO_POSTAL;DATA;ENB_GNB;CONCELHO_CD
