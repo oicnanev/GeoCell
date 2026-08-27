@@ -334,6 +334,62 @@ class JdbcCellRepository(
 		)
 	}
 
+	override fun findCellsTouchingCellPolygon(cellId: Long): List<CellDetailsRecord> =
+		jdbcTemplate.query(
+			"""
+			$baseSelect
+			JOIN cell_polygon source_cp ON source_cp.cell_id = ?
+			WHERE cp.polygon IS NOT NULL
+			  AND c.id <> ?
+			  AND ST_Intersects(cp.polygon::geometry, source_cp.polygon::geometry)
+			ORDER BY c.id DESC
+			""".trimIndent(),
+			{ rs, _ -> rs.toCellDetailsRecord() },
+			cellId,
+			cellId
+		)
+
+	override fun findCellsTouchingPointPolygon(
+		latitude: Double,
+		longitude: Double,
+		mnc: Int?,
+		band: String?,
+		technologies: Set<Int>?
+	): List<CellDetailsRecord> {
+		val sql = StringBuilder(
+			"""
+			$baseSelect
+			WHERE cp.polygon IS NOT NULL
+			  AND ST_Intersects(
+			    cp.polygon::geometry,
+			    ST_SetSRID(ST_MakePoint(?, ?), 4326)
+			  )
+			""".trimIndent()
+		)
+		val params = mutableListOf<Any>(longitude, latitude)
+
+		if (mnc != null) {
+			sql.append("\n  AND m.mnc = ?")
+			params.add(mnc)
+		}
+		if (!band.isNullOrBlank()) {
+			sql.append("\n  AND b.band = ?")
+			params.add(band)
+		}
+		if (!technologies.isNullOrEmpty()) {
+			sql.append("\n  AND c.technology IN (${technologies.joinToString(",") { "?" }})")
+			params.addAll(technologies)
+		}
+
+		sql.append("\nORDER BY c.id DESC")
+
+		return jdbcTemplate.query(
+			sql.toString(),
+			{ rs, _ -> rs.toCellDetailsRecord() },
+			*params.toTypedArray()
+		)
+	}
+
 
 	override fun findById(id: Long): CellDetailsRecord? =
 		jdbcTemplate.query(
@@ -856,7 +912,7 @@ class JdbcCellRepository(
 				params.forEachIndexed { index, value -> setObject(index + 1, value) }
 			}
 		}, keyHolder)
-		val id = keyHolder.keys?.get("id") as? Number ?: keyHolder.key as? Number
+		val id = keyHolder.keys?.get("id") as? Number ?: keyHolder.key
 		return id?.toLong() ?: throw IllegalStateException("Failed to generate id for insert")
 	}
 }

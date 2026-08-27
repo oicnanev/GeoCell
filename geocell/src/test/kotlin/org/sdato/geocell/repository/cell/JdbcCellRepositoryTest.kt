@@ -103,6 +103,36 @@ class JdbcCellRepositoryTest {
 	}
 
 	@Test
+	fun `find cells touching cell polygon returns intersecting cells`() {
+		val cells = repository.findCellsTouchingCellPolygon(1L)
+		assertEquals(listOf(2L), cells.map { it.id })
+	}
+
+	@Test
+	fun `find cells touching point polygon returns cells containing point`() {
+		val cells = repository.findCellsTouchingPointPolygon(
+			latitude = 38.73,
+			longitude = -9.14,
+			mnc = null,
+			band = null,
+			technologies = null
+		)
+		assertEquals(listOf(2L, 1L), cells.map { it.id })
+	}
+
+	@Test
+	fun `find cells touching point polygon applies filters`() {
+		val cells = repository.findCellsTouchingPointPolygon(
+			latitude = 38.73,
+			longitude = -9.14,
+			mnc = 3,
+			band = "800",
+			technologies = setOf(4)
+		)
+		assertEquals(listOf(1L), cells.map { it.id })
+	}
+
+	@Test
 	fun `find lac tac coverage polygon returns geojson`() {
 		val polygon = repository.findLacTacCoveragePolygon(268, 3, "1234")
 		assertNotNull(polygon)

@@ -47,6 +47,14 @@ interface CellRepository {
 		band: String?,
 		technologies: Set<Int>?
 	): List<CellDetailsRecord>
+	fun findCellsTouchingCellPolygon(cellId: Long): List<CellDetailsRecord>
+	fun findCellsTouchingPointPolygon(
+		latitude: Double,
+		longitude: Double,
+		mnc: Int?,
+		band: String?,
+		technologies: Set<Int>?
+	): List<CellDetailsRecord>
 	fun findById(id: Long): CellDetailsRecord?
 	fun findCountyId(districtId: String, countyId: String): Long?
 	fun findMccMncId(mcc: Int, mnc: Int): Long?

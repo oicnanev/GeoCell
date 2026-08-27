@@ -71,4 +71,33 @@ class CellControllerTest {
 			.andExpect(jsonPath("\$[1].paragonCgi").value("268-3-10001"))
 			.andExpect(jsonPath("\$[2].cgi").value("268-3-10000"))
 	}
+
+	@Test
+	fun `search polygon touch by cell returns central and touching cells`() {
+		mockMvc.perform(
+			get("/api/cells/search/polygon-touch/cell")
+				.param("cgi", "268-3-10000")
+		)
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.centralCell.cgi").value("268-3-10000"))
+			.andExpect(jsonPath("$.centralCell.polygonGeoJson").exists())
+			.andExpect(jsonPath("$.touchingCells.length()").value(1))
+			.andExpect(jsonPath("$.touchingCells[0].paragonCgi").value("268-3-10001"))
+	}
+
+	@Test
+	fun `search polygon touch by point returns matching cells`() {
+		mockMvc.perform(
+			get("/api/cells/search/polygon-touch/point")
+				.param("lat", "38.73")
+				.param("lon", "-9.14")
+				.param("mnc", "3")
+				.param("band", "800")
+		)
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.latitude").value(38.73))
+			.andExpect(jsonPath("$.longitude").value(-9.14))
+			.andExpect(jsonPath("$.cells.length()").value(1))
+			.andExpect(jsonPath("$.cells[0].cgi").value("268-3-10000"))
+	}
 }

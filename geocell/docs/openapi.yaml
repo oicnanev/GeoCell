@@ -632,6 +632,90 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
+  /api/cells/search/polygon-touch/cell:
+    get:
+      tags: [Cells]
+      summary: Obter polygon de uma cell e cells com polygons que tocam esse polygon
+      description: |
+        Dada uma cell de referência (`cgi`), devolve a cell central e as cells
+        cujos polygons intersectam/tocam o polygon da central.
+      security:
+        - SessionCookieAuth: []
+      parameters:
+        - name: cgi
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cell central e cells com polygons que tocam o polygon central.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CellsTouchingCellPolygonResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/cells/search/polygon-touch/point:
+    get:
+      tags: [Cells]
+      summary: Pesquisar cells cujo polygon toca um ponto
+      description: |
+        Devolve as cells cujos polygons intersectam/tocam o ponto definido por `lat` e `lon`.
+        Permite filtros opcionais por MNC, banda e geração tecnológica.
+      security:
+        - SessionCookieAuth: []
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: lon
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: mnc
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: band
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: techGeneration
+          in: query
+          required: false
+          description: Pode ser repetido ou enviado em CSV (`2G,4G,NB-IoT`).
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [2G, 3G, 4G, 5G, NB-IoT]
+          style: form
+          explode: true
+      responses:
+        '200':
+          description: Cells cujo polygon toca/intersecta o ponto indicado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CellsTouchingPointResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
   /api/cells/search/county:
     get:
       tags: [Cells]
@@ -1497,6 +1581,37 @@ components:
         cells:
           type: array
           description: Cells encontradas dentro do rectângulo delimitador.
+          items:
+            $ref: '#/components/schemas/CellResponse'
+
+    CellsTouchingCellPolygonResponse:
+      type: object
+      required:
+        - centralCell
+        - touchingCells
+      properties:
+        centralCell:
+          $ref: '#/components/schemas/CellResponse'
+        touchingCells:
+          type: array
+          items:
+            $ref: '#/components/schemas/CellResponse'
+
+    CellsTouchingPointResponse:
+      type: object
+      required:
+        - latitude
+        - longitude
+        - cells
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        cells:
+          type: array
           items:
             $ref: '#/components/schemas/CellResponse'
 

@@ -264,6 +264,8 @@ A especificação completa está em [`openapi.yaml`](./openapi.yaml).
 | GET    | `/nearby`              | Células num raio em torno de uma célula por CGI            | ✅   |
 | GET    | `/search/circle`       | Células num círculo por coordenadas + raio                 | ✅   |
 | GET    | `/search/bbox`         | Células num rectângulo definido por dois pontos            | ✅   |
+| GET    | `/search/polygon-touch/cell` | Célula central + células cujo polygon toca o polygon dessa célula | ✅   |
+| GET    | `/search/polygon-touch/point` | Células cujo polygon toca um ponto (`lat`,`lon`)       | ✅   |
 | GET    | `/search/county`       | Células por distrito/concelho + filtros de rede/tecnologia | ✅   |
 | GET    | `/search/lac-tac`      | Células por MCC/MNC/LAC-TAC                                | ✅   |
 | GET    | `/search/lac-tac/polygon` | Polygon de cobertura por MCC/MNC/LAC-TAC               | ✅   |
@@ -345,6 +347,30 @@ ST_Within(l.coordinates,
           ST_MakeEnvelope(minLon, minLat, maxLon, maxLat, 4326))
 ```
 
+#### `GET /api/cells/search/polygon-touch/cell`
+
+Dada uma célula de referência (`cgi`), devolve a célula central (com polygon) e as cells cujos polygons tocam/intersectam esse polygon.
+
+| Parâmetro | Tipo   | Obrig. | Descrição                           |
+|-----------|--------|--------|-------------------------------------|
+| `cgi`     | string | ✅     | CGI/ECGI/NCGI da célula de referência |
+
+**Resposta:** `CellsTouchingCellPolygonResponse { centralCell, touchingCells[] }`
+
+#### `GET /api/cells/search/polygon-touch/point`
+
+Pesquisa cells cujo polygon toca/intersecta o ponto indicado.
+
+| Parâmetro       | Tipo     | Obrig. | Descrição                          |
+|-----------------|----------|--------|------------------------------------|
+| `lat`           | double   | ✅     | Latitude do ponto                  |
+| `lon`           | double   | ✅     | Longitude do ponto                 |
+| `mnc`           | integer  | ❌     | Filtrar por MNC                    |
+| `band`          | string   | ❌     | Filtrar por banda                  |
+| `techGeneration`| string[] | ❌     | `2G`, `3G`, `4G`, `5G`, `NB-IoT`  |
+
+**Resposta:** `CellsTouchingPointResponse { latitude, longitude, cells[] }`
+
 #### `GET /api/cells/search/county`
 
 Pesquisa células pelos concelhos de um distrito inteiro, ou por um concelho específico quando `countyId` é enviado.
@@ -407,6 +433,8 @@ Principal service da aplicação. Responsabilidades:
 - **`getNearbyCells(cgi, radiusKm, sameNetwork, techGenerations)`** — resolve coordenadas da célula central e delega no repositório.
 - **`getCellsInCircle(lat, lon, radiusKm, mnc, techGenerations)`** — pesquisa geoespacial por coordenadas directas.
 - **`getCellsInBbox(lat1, lon1, lat2, lon2, mnc, techGenerations)`** — pesquisa por rectângulo delimitador.
+- **`getCellsTouchingCellPolygon(cgi)`** — obtém uma célula de referência e as cells com polygons que tocam/intersectam o polygon dessa célula.
+- **`getCellsTouchingPointPolygon(lat, lon, mnc, band, techGenerations)`** — pesquisa cells cujo polygon toca/intersecta um ponto.
 - **`getCellsByAdministrativeArea(districtId, countyId, mnc, techGenerations)`** — pesquisa por distrito/concelho com filtros e polígono CAOP correspondente.
 - **`getCellsByLacTac(mcc, mnc, lacTac)`** — lista cells pelo mesmo MCC/MNC/LAC-TAC.
 - **`getLacTacCoveragePolygon(mcc, mnc, lacTac)`** — calcula o polygon de cobertura por MCC/MNC/LAC-TAC.

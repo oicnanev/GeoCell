@@ -22,6 +22,8 @@ import org.sdato.geocell.dto.response.CellMccMncResponse
 import org.sdato.geocell.dto.response.CellResponse
 import org.sdato.geocell.dto.response.CellsInBboxResponse
 import org.sdato.geocell.dto.response.CellsInCircleResponse
+import org.sdato.geocell.dto.response.CellsTouchingCellPolygonResponse
+import org.sdato.geocell.dto.response.CellsTouchingPointResponse
 import org.sdato.geocell.dto.response.NearbyCellsResponse
 import org.sdato.geocell.exception.ResourceNotFoundException
 import org.sdato.geocell.exception.ValidationException
@@ -279,6 +281,47 @@ class CellService(
 			corner2Latitude = lat2,
 			corner2Longitude = lon2,
 			cells = cells.map { it.toResponse(includePolygon = false, includePolygonShort = true) }
+		)
+	}
+
+	fun getCellsTouchingCellPolygon(cgi: String): CellsTouchingCellPolygonResponse {
+		val normalizedCgi = cgi.trim()
+		if (normalizedCgi.isBlank()) {
+			throw ValidationException("cgi query parameter is required")
+		}
+
+		val center = cellRepository.findByCgi(normalizedCgi).firstOrNull()
+			?: throw ResourceNotFoundException("No cells found for cgi '$normalizedCgi'")
+		if (center.polygonGeoJson == null) {
+			throw ResourceNotFoundException("Cell '$normalizedCgi' does not have a polygon")
+		}
+
+		val touching = cellRepository.findCellsTouchingCellPolygon(center.id)
+		return CellsTouchingCellPolygonResponse(
+			centralCell = center.toResponse(includePolygon = true, includePolygonShort = true),
+			touchingCells = touching.map { it.toResponse(includePolygon = true, includePolygonShort = true) }
+		)
+	}
+
+	fun getCellsTouchingPointPolygon(
+		latitude: Double,
+		longitude: Double,
+		mnc: Int?,
+		band: String?,
+		techGenerations: List<String>?
+	): CellsTouchingPointResponse {
+		val technologies = parseTechnologyGenerations(techGenerations)
+		val cells = cellRepository.findCellsTouchingPointPolygon(
+			latitude = latitude,
+			longitude = longitude,
+			mnc = mnc,
+			band = band?.trim()?.ifBlank { null },
+			technologies = technologies
+		)
+		return CellsTouchingPointResponse(
+			latitude = latitude,
+			longitude = longitude,
+			cells = cells.map { it.toResponse(includePolygon = true, includePolygonShort = true) }
 		)
 	}
 

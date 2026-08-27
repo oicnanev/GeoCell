@@ -7,6 +7,8 @@ import org.sdato.geocell.dto.response.CellsByAdministrativeAreaResponse
 import org.sdato.geocell.dto.response.NearbyCellsResponse
 import org.sdato.geocell.dto.response.CellsInCircleResponse
 import org.sdato.geocell.dto.response.CellsInBboxResponse
+import org.sdato.geocell.dto.response.CellsTouchingCellPolygonResponse
+import org.sdato.geocell.dto.response.CellsTouchingPointResponse
 import org.sdato.geocell.dto.response.CellResponse
 import org.sdato.geocell.dto.response.CountyResponse
 import org.sdato.geocell.dto.response.DistrictResponse
@@ -79,6 +81,20 @@ class CellController(
 		@RequestParam(required = false) techGeneration: List<String>?
 	): CellsInBboxResponse =
 		cellService.getCellsInBbox(lat1, lon1, lat2, lon2, mnc, band, techGeneration)
+
+	@GetMapping("/search/polygon-touch/cell")
+	fun getCellsTouchingCellPolygon(@RequestParam cgi: String): CellsTouchingCellPolygonResponse =
+		cellService.getCellsTouchingCellPolygon(cgi)
+
+	@GetMapping("/search/polygon-touch/point")
+	fun getCellsTouchingPointPolygon(
+		@RequestParam lat: Double,
+		@RequestParam lon: Double,
+		@RequestParam(required = false) mnc: Int?,
+		@RequestParam(required = false) band: String?,
+		@RequestParam(required = false) techGeneration: List<String>?
+	): CellsTouchingPointResponse =
+		cellService.getCellsTouchingPointPolygon(lat, lon, mnc, band, techGeneration)
 
 	@GetMapping("/search/county")
 	fun getCellsByAdministrativeArea(

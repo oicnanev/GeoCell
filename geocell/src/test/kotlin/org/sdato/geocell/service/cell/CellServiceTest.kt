@@ -99,6 +99,30 @@ class CellServiceTest {
 	}
 
 	@Test
+	fun `polygon touch by cell returns central cell and touching cells`() {
+		val response = env.service.getCellsTouchingCellPolygon("268-3-10000")
+		assertEquals("268-3-10000", response.centralCell.cgi)
+		assertNotNull(response.centralCell.polygonGeoJson)
+		assertEquals(listOf("268-3-10001"), response.touchingCells.map { it.cgi ?: it.paragonCgi })
+		assertTrue(response.touchingCells.all { it.polygonGeoJson != null })
+	}
+
+	@Test
+	fun `polygon touch by point accepts filters`() {
+		val response = env.service.getCellsTouchingPointPolygon(
+			latitude = 38.73,
+			longitude = -9.14,
+			mnc = 3,
+			band = "800",
+			techGenerations = listOf("4G")
+		)
+		assertEquals(38.73, response.latitude)
+		assertEquals(-9.14, response.longitude)
+		assertEquals(listOf("268-3-10000"), response.cells.map { it.cgi ?: it.paragonCgi })
+		assertTrue(response.cells.all { it.polygonGeoJson != null })
+	}
+
+	@Test
 	fun `create update and delete cell work end to end`() {
 		val createRequest = CellUpsertRequest(
 			cgi = "269-10-11111",
